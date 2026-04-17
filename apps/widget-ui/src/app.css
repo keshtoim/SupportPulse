@@ -207,8 +207,8 @@
 
 .chat-bubble p {
   margin: 0;
-  font-size: 42px;
-  line-height: 1.33;
+  font-size: 20px;
+  line-height: 1.35;
 }
 
 .widget-footer {
@@ -374,6 +374,10 @@
   height: 42px;
   border-radius: 8px;
   border: 3px solid #1d2430;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  line-height: 1;
 }
 
 .admin-nav {
@@ -427,6 +431,7 @@
   min-height: 44px;
   background: #fff;
   font-weight: 700;
+  font-size: 18px;
   cursor: pointer;
 }
 

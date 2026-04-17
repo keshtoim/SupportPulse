@@ -189,23 +189,26 @@ function AdminPreview({
             </div>
 
             <div class="dashboard-grid">
-              {['Профиль', 'Сообщения', 'Настройки', 'О сервисе'].map((item) => (
+              {[
+                { title: 'Профиль', icon: '👤', screen: 'profile' as const },
+                { title: 'Сообщения', icon: '💬', screen: 'chats' as const },
+                { title: 'Настройки', icon: '⚙', screen: 'settings' as const },
+                { title: 'О сервисе', icon: '☰', screen: 'dashboard' as const },
+              ].map((item) => (
                 <button
                   class="dashboard-tile"
                   type="button"
-                  key={item}
-                  onClick={() =>
-                    onScreenChange(item === 'Профиль' ? 'profile' : item === 'Сообщения' ? 'chats' : item === 'Настройки' ? 'settings' : 'dashboard')
-                  }
+                  key={item.title}
+                  onClick={() => onScreenChange(item.screen)}
                 >
-                  <div class="tile-icon" />
-                  <span>{item}</span>
+                  <div class="tile-icon">{item.icon}</div>
+                  <span>{item.title}</span>
                 </button>
               ))}
             </div>
 
             <button class="dashboard-wide-tile" type="button" onClick={() => onScreenChange('dashboard')}>
-              <div class="tile-icon" />
+              <div class="tile-icon">🧾</div>
               <span>База знаний</span>
             </button>
           </section>
@@ -228,10 +231,10 @@ function AdminPreview({
 
         <div class="side-bottom-nav">
           {[
-            { icon: 'П', target: 'profile' as const },
-            { icon: 'Ч', target: 'chats' as const },
-            { icon: 'Н', target: 'settings' as const },
-            { icon: 'О', target: 'dashboard' as const },
+            { icon: '👤', target: 'profile' as const },
+            { icon: '💬', target: 'chats' as const },
+            { icon: '⚙', target: 'settings' as const },
+            { icon: '🧾', target: 'dashboard' as const },
           ].map((item) => (
             <button
               class={`mini-nav-button ${screen === item.target ? 'active' : ''}`}
