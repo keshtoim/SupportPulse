@@ -132,58 +132,90 @@ function AdminPreview({
   screen: AdminScreen
   onScreenChange: (screen: AdminScreen) => void
 }) {
+  const adminTitle = screen === 'dashboard' ? 'Главная' : screen === 'chats' ? 'Мои чаты' : screen === 'settings' ? 'Настройки' : 'Профиль'
+
   return (
     <section class="admin-shell">
       <aside class="admin-sidebar">
-        <div class="admin-brand">
-          <div class="brand-icon" />
-          <div>
-            <strong>SupportPulse</strong>
-            <span>Панель управления</span>
-          </div>
+        <div class="panel-header">
+          <div class="small-logo" />
+          <span class="back-arrow">‹</span>
+          <strong>{adminTitle}</strong>
         </div>
 
-        <nav class="admin-nav">
-          <button
-            class={`admin-nav-item ${screen === 'dashboard' ? 'active' : ''}`}
-            type="button"
-            onClick={() => onScreenChange('dashboard')}
-          >
-            Главная
-          </button>
-          <button
-            class={`admin-nav-item ${screen === 'chats' ? 'active' : ''}`}
-            type="button"
-            onClick={() => onScreenChange('chats')}
-          >
-            Мои чаты
-          </button>
-          <button
-            class={`admin-nav-item ${screen === 'settings' ? 'active' : ''}`}
-            type="button"
-            onClick={() => onScreenChange('settings')}
-          >
-            Настройки
-          </button>
-          <button
-            class={`admin-nav-item ${screen === 'profile' ? 'active' : ''}`}
-            type="button"
-            onClick={() => onScreenChange('profile')}
-          >
-            Профиль
-          </button>
-        </nav>
+        {screen === 'dashboard' ? (
+          <section class="dashboard-menu">
+            <div class="dashboard-brand">
+              <div class="brand-icon large" />
+              <div>
+                <strong>Главная</strong>
+                <p>SupportPulse</p>
+              </div>
+            </div>
+
+            <div class="dashboard-grid">
+              {['Профиль', 'Сообщения', 'Настройки', 'О сервисе'].map((item) => (
+                <button class="dashboard-tile" type="button" key={item}>
+                  <div class="tile-icon" />
+                  <span>{item}</span>
+                </button>
+              ))}
+            </div>
+
+            <button class="dashboard-wide-tile" type="button">
+              <div class="tile-icon" />
+              <span>База знаний</span>
+            </button>
+          </section>
+        ) : (
+          <nav class="admin-nav">
+            <button class={`admin-nav-item ${screen === 'profile' ? 'active' : ''}`} type="button" onClick={() => onScreenChange('profile')}>
+              <span class="dot-circle" />
+              Основная информация
+            </button>
+            <button class="admin-nav-item" type="button">
+              <span class="dot-circle" />
+              Настройка
+            </button>
+            <button class="admin-nav-item" type="button">
+              <span class="dot-circle" />
+              Настройка
+            </button>
+          </nav>
+        )}
+
+        <div class="side-bottom-nav">
+          {[
+            { icon: 'П', target: 'profile' as const },
+            { icon: 'Ч', target: 'chats' as const },
+            { icon: 'Н', target: 'settings' as const },
+            { icon: 'О', target: 'dashboard' as const },
+          ].map((item) => (
+            <button
+              class={`mini-nav-button ${screen === item.target ? 'active' : ''}`}
+              type="button"
+              key={item.icon}
+              onClick={() => onScreenChange(item.target)}
+            >
+              {item.icon}
+            </button>
+          ))}
+        </div>
       </aside>
 
       <section class="admin-content">
         {screen === 'dashboard' && (
           <div class="admin-page">
-            <h2>База знаний</h2>
-            <article class="admin-card">
+            <header class="knowledge-header">
+              <h2>База знаний</h2>
+              <div class="profile-circle">◔</div>
+            </header>
+
+            <article class="knowledge-card">
               <div class="brand-icon large" />
               <div>
                 <h3>Долгожданный запуск</h3>
-                <p>Спустя долгий период разработки SupportPulse наконец-то стал доступен.</p>
+                <p>Спустя долгий период разработки SupportPulse наконец-то стал доступен для использования.</p>
                 <button class="primary-button compact" type="button">
                   Использовать
                 </button>
@@ -193,18 +225,28 @@ function AdminPreview({
         )}
 
         {screen === 'chats' && (
-          <div class="admin-page">
-            <h2>Мои чаты</h2>
-            <div class="admin-list">
-              {['Тикет #1024', 'Тикет #1025', 'Тикет #1026'].map((ticket) => (
-                <article class="admin-list-item" key={ticket}>
-                  <div class="avatar-circle" />
-                  <div>
-                    <strong>{ticket}</strong>
-                    <p>Последнее сообщение от клиента...</p>
-                  </div>
-                </article>
-              ))}
+          <div class="admin-page chats-page">
+            <header class="chat-controls">
+              <button class="chip" type="button">
+                Дата
+              </button>
+              <button class="chip circle" type="button" aria-label="Фильтр" />
+            </header>
+
+            <div class="chat-canvas">
+              <div class="message-row right">
+                <div class="message-meta">Имя</div>
+                <div class="avatar-circle" />
+                <div class="bubble-line" />
+              </div>
+
+              <div class="message-row left">
+                <div class="avatar-circle" />
+                <div>
+                  <div class="message-meta">Имя</div>
+                  <div class="bubble-line medium" />
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -221,23 +263,32 @@ function AdminPreview({
               </button>
             </div>
             <label class="form-label" for="site-url">
-              Адрес сайта
+              Адрес сайта<span class="required">*</span>
             </label>
+            <p class="form-hint">На нем будет размещен виджет поддержки</p>
             <input id="site-url" class="text-input" type="text" placeholder="https://www.example.com" />
           </div>
         )}
 
         {screen === 'profile' && (
-          <div class="admin-page">
-            <h2>Профиль</h2>
-            <label class="form-label" for="display-name">
-              Отображаемое имя
-            </label>
-            <input id="display-name" class="text-input" type="text" placeholder="Имя профиля" />
-            <label class="form-label" for="bio">
-              Биография
-            </label>
-            <textarea id="bio" class="text-area" placeholder="Коротко о себе" />
+          <div class="profile-layout">
+            <div class="profile-main">
+              <label class="form-label" for="display-name">
+                Отображаемое имя
+              </label>
+              <input id="display-name" class="text-input" type="text" placeholder="Имя профиля" />
+              <label class="form-label" for="bio">
+                Биография
+              </label>
+              <textarea id="bio" class="text-area" />
+            </div>
+            <div class="profile-side">
+              <h3>Аватар профиля</h3>
+              <div class="avatar-big">◉</div>
+              <button class="primary-button compact" type="button">
+                Изменить
+              </button>
+            </div>
           </div>
         )}
       </section>
