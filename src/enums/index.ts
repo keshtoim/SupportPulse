@@ -44,6 +44,22 @@ export const TicketStatus = {
   Closed:        "closed"         as const,
 } satisfies Record<string, TicketStatus>;
 
+// UI-фильтр очереди тикетов на фронте
+export type TicketStatusFilter = TicketStatus | "all";
+
+export const TicketStatusFilter = {
+  All: "all" as const,
+} satisfies Record<string, TicketStatusFilter>;
+
+// Человекочитаемые подписи для бейджей и фильтров
+export const TicketStatusLabel: Record<TicketStatus, string> = {
+  new: "New",
+  in_queue: "In queue",
+  in_progress: "In progress",
+  waiting_client: "Waiting for client",
+  closed: "Closed",
+};
+
 // ── SessionState ──────────────────────────────────────────────────────────────
 
 export type SessionState =
@@ -69,3 +85,42 @@ export const SenderType = {
   AI:       "ai"       as const,
   Operator: "operator" as const,
 } satisfies Record<string, SenderType>;
+
+export const SenderTypeLabel: Record<SenderType, string> = {
+  client: "Client",
+  ai: "AI assistant",
+  operator: "Operator",
+};
+
+// Приоритеты тикетов для UI-сортировки и цветовых маркеров
+export type TicketPriority =
+  | "low"
+  | "medium"
+  | "high"
+  | "urgent";
+
+export const TicketPriority = {
+  Low: "low" as const,
+  Medium: "medium" as const,
+  High: "high" as const,
+  Urgent: "urgent" as const,
+} satisfies Record<string, TicketPriority>;
+
+export const TicketPriorityLabel: Record<TicketPriority, string> = {
+  low: "Low",
+  medium: "Medium",
+  high: "High",
+  urgent: "Urgent",
+};
+
+// Канал обращения (полезно для фильтров в админке)
+export type TicketChannel =
+  | "widget"
+  | "email"
+  | "phone";
+
+export const TicketChannel = {
+  Widget: "widget" as const,
+  Email: "email" as const,
+  Phone: "phone" as const,
+} satisfies Record<string, TicketChannel>;

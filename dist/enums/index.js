@@ -11,7 +11,7 @@
 // Паттерн: тип + объект-константа с теми же значениями.
 // Тип используется для аннотаций, объект — вместо enum.XXX в коде.
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SenderType = exports.SessionState = exports.TicketStatus = exports.UserRole = void 0;
+exports.TicketChannel = exports.TicketPriorityLabel = exports.TicketPriority = exports.SenderTypeLabel = exports.SenderType = exports.SessionState = exports.TicketStatusLabel = exports.TicketStatusFilter = exports.TicketStatus = exports.UserRole = void 0;
 exports.UserRole = {
     Client: "client",
     Operator: "operator",
@@ -26,6 +26,17 @@ exports.TicketStatus = {
     WaitingClient: "waiting_client",
     Closed: "closed",
 };
+exports.TicketStatusFilter = {
+    All: "all",
+};
+// Человекочитаемые подписи для бейджей и фильтров
+exports.TicketStatusLabel = {
+    new: "New",
+    in_queue: "In queue",
+    in_progress: "In progress",
+    waiting_client: "Waiting for client",
+    closed: "Closed",
+};
 exports.SessionState = {
     Active: "active",
     Escalated: "escalated",
@@ -35,4 +46,26 @@ exports.SenderType = {
     Client: "client",
     AI: "ai",
     Operator: "operator",
+};
+exports.SenderTypeLabel = {
+    client: "Client",
+    ai: "AI assistant",
+    operator: "Operator",
+};
+exports.TicketPriority = {
+    Low: "low",
+    Medium: "medium",
+    High: "high",
+    Urgent: "urgent",
+};
+exports.TicketPriorityLabel = {
+    low: "Low",
+    medium: "Medium",
+    high: "High",
+    urgent: "Urgent",
+};
+exports.TicketChannel = {
+    Widget: "widget",
+    Email: "email",
+    Phone: "phone",
 };
