@@ -1,4 +1,4 @@
-import { UserRole, TicketStatus, SessionState, SenderType } from "../enums";
+import { UserRole, TicketStatus, SessionState, SenderType, TicketPriority, TicketChannel, TicketStatusFilter } from "../enums";
 export interface PaginationMeta {
     page: number;
     pageSize: number;
@@ -58,8 +58,12 @@ export interface AIStreamChunk {
 export interface TicketSummaryDTO {
     ticketId: string;
     status: TicketStatus;
+    priority: TicketPriority;
+    channel: TicketChannel;
     clientName: string | null;
     assignedOperatorName: string | null;
+    lastMessagePreview: string | null;
+    unreadCount: number;
     createdAt: string;
     updatedAt: string;
 }
@@ -70,6 +74,14 @@ export interface TicketDetailDTO extends TicketSummaryDTO {
     internalNotes: string | null;
     closureCategory: string | null;
     assignedUserId: string | null;
+}
+export interface TicketListQueryDTO {
+    status?: TicketStatusFilter;
+    priority?: TicketPriority;
+    channel?: TicketChannel;
+    search?: string;
+    page?: number;
+    pageSize?: number;
 }
 export type RealtimeEventType = "ticket.created" | "ticket.assigned" | "ticket.status" | "message.new";
 export interface RealtimeEvent<T = unknown> {
