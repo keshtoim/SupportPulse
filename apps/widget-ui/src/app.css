@@ -1,27 +1,29 @@
 .app-root {
-  min-height: 100vh;
-  padding: 12px;
+  min-height: 100svh;
+  padding: 10px;
   box-sizing: border-box;
 }
 
 .mode-switch {
-  width: min(1080px, 100%);
-  margin: 0 auto 12px;
-  background: #ffffff;
-  border-radius: 14px;
+  width: min(1040px, 100%);
+  margin: 0 auto 10px;
+  background: #fff;
+  border-radius: 12px;
   padding: 6px;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: 6px;
+  box-shadow: 0 2px 10px rgba(28, 45, 76, 0.08);
 }
 
 .mode-switch-button {
   border: none;
-  border-radius: 10px;
-  min-height: 40px;
-  font-size: 16px;
+  border-radius: 8px;
+  min-height: 36px;
+  font-size: 14px;
   font-weight: 700;
   background: transparent;
+  cursor: pointer;
 }
 
 .mode-switch-button.active {
@@ -30,18 +32,21 @@
 }
 
 .widget-shell {
-  width: min(580px, 100%);
-  min-height: 100vh;
+  width: min(608px, 100%);
+  min-height: calc(100svh - 56px);
   margin: 0 auto;
-  background: #f7f8fc;
+  background: #f8f8fa;
   display: flex;
   flex-direction: column;
   position: relative;
-  color: #1f2430;
+  color: #202531;
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow: 0 8px 26px rgba(25, 42, 73, 0.18);
 }
 
 .widget-header {
-  padding: 16px;
+  padding: 14px 16px 8px;
   display: grid;
   grid-template-columns: 40px 1fr 40px;
   align-items: center;
@@ -53,53 +58,72 @@
   border-radius: 999px;
   width: 40px;
   height: 40px;
-  background: #eceef3;
+  background: #ebedf2;
   font-size: 28px;
   color: #1f2430;
+  cursor: pointer;
 }
 
 .brand-chip {
   background: #fff;
   border-radius: 22px;
-  padding: 10px 14px;
+  padding: 9px 12px;
   display: flex;
   align-items: center;
   gap: 10px;
-  box-shadow: 0 4px 18px rgba(25, 42, 73, 0.16);
+  box-shadow: 0 3px 12px rgba(25, 42, 73, 0.16);
 }
 
-.brand-icon {
+.app-icon {
+  object-fit: cover;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.app-icon.xs {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+}
+
+.app-icon.sm {
   width: 44px;
   height: 44px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #3f8bff 0%, #8329ff 100%);
+}
+
+.app-icon.md {
+  width: 120px;
+  height: 120px;
+  border-radius: 16px;
 }
 
 .brand-copy {
   display: flex;
   flex-direction: column;
-  line-height: 1.1;
+  line-height: 1.05;
 }
 
 .brand-copy strong {
-  font-size: 22px;
+  font-size: 42px;
+  letter-spacing: -0.5px;
 }
 
 .brand-copy span {
-  font-size: 18px;
+  font-size: 16px;
+  font-weight: 700;
   color: #6a7382;
 }
 
 .screen-body {
   flex: 1;
-  padding: 16px;
+  padding: 10px 16px 14px;
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
 
 .hero-banner {
-  min-height: 120px;
+  min-height: 165px;
   border-radius: 28px;
   padding: 22px;
   background: linear-gradient(160deg, #4a8fff, #b88bff);
@@ -110,7 +134,9 @@
 
 .hero-banner h1 {
   margin: 0;
-  font-size: 52px;
+  font-size: 60px;
+  font-weight: 800;
+  letter-spacing: -1px;
 }
 
 .card {
@@ -122,43 +148,49 @@
 
 .intro-card {
   display: grid;
-  grid-template-columns: 84px 1fr;
+  grid-template-columns: 118px 1fr;
   gap: 14px;
 }
 
 .intro-icon {
-  width: 84px;
-  height: 84px;
+  width: 112px;
+  height: 112px;
   border-radius: 18px;
 }
 
 .intro-card p {
   margin: 0;
-  font-size: 20px;
-  line-height: 1.35;
+  font-size: 18px;
+  line-height: 1.25;
 }
 
 .primary-button {
   grid-column: 1 / -1;
   border: none;
-  border-radius: 20px;
-  min-height: 62px;
+  border-radius: 18px;
+  min-height: 74px;
   color: #fff;
   background: #4b94ff;
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
+  cursor: pointer;
 }
 
 .feature-card {
   border: none;
   border-radius: 18px;
-  min-height: 92px;
+  min-height: 82px;
   background: #fff;
   text-align: left;
   padding: 0 24px;
-  font-size: 48px;
+  font-size: 20px;
   font-weight: 700;
   box-shadow: 0 6px 18px rgba(25, 42, 73, 0.12);
+  cursor: pointer;
+}
+
+.feature-card span {
+  display: block;
 }
 
 .chat-screen {
@@ -175,13 +207,13 @@
 
 .chat-bubble p {
   margin: 0;
-  font-size: 20px;
+  font-size: 42px;
   line-height: 1.33;
 }
 
 .widget-footer {
   background: #fff;
-  border-radius: 28px 28px 0 0;
+  border-radius: 30px 30px 0 0;
   margin-top: auto;
   box-shadow: 0 -5px 18px rgba(25, 42, 73, 0.12);
   display: grid;
@@ -193,8 +225,17 @@
   min-height: 86px;
   border: none;
   background: #fff;
-  font-size: 26px;
+  font-size: 44px;
   font-weight: 700;
+  display: grid;
+  place-items: center;
+  gap: 2px;
+  cursor: pointer;
+}
+
+.tab-icon {
+  font-size: 26px;
+  line-height: 1;
 }
 
 .tab-button.active {
@@ -202,8 +243,6 @@
 }
 
 .composer {
-  position: sticky;
-  bottom: 0;
   margin: 0 16px 16px;
   padding: 10px 12px;
   background: #fff;
@@ -218,7 +257,7 @@
 .composer input {
   border: none;
   outline: none;
-  font-size: 22px;
+  font-size: 20px;
 }
 
 .composer-icon,
@@ -228,6 +267,7 @@
   min-height: 42px;
   font-size: 30px;
   background: #edf0f6;
+  cursor: pointer;
 }
 
 .composer-send {
@@ -236,7 +276,7 @@
 
 .admin-shell {
   width: min(1080px, 100%);
-  min-height: calc(100vh - 72px);
+  min-height: calc(100svh - 56px);
   margin: 0 auto;
   background: #fff;
   border-radius: 18px;
@@ -262,20 +302,16 @@
   padding: 4px 4px 10px;
 }
 
-.small-logo {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #3f8bff 0%, #8329ff 100%);
-}
-
-.back-arrow {
+.back-button {
+  border: none;
+  background: transparent;
   font-size: 34px;
-  line-height: 0.5;
+  line-height: 1;
+  cursor: pointer;
 }
 
 .panel-header strong {
-  font-size: 50px;
+  font-size: 26px;
   letter-spacing: 0.5px;
 }
 
@@ -293,14 +329,14 @@
 
 .dashboard-brand strong {
   display: block;
-  font-size: 56px;
-  line-height: 0.95;
+  font-size: 24px;
+  line-height: 1;
 }
 
 .dashboard-brand p {
-  font-size: 46px;
+  font-size: 18px;
   margin: 0;
-  line-height: 0.95;
+  line-height: 1;
 }
 
 .dashboard-grid {
@@ -315,18 +351,19 @@
   border-radius: 10px;
   background: #f3f1ff;
   padding: 12px;
-  min-height: 116px;
+  min-height: 104px;
   display: grid;
   justify-items: center;
   align-content: center;
   gap: 8px;
-  font-size: 28px;
+  font-size: 14px;
   font-weight: 700;
+  cursor: pointer;
 }
 
 .dashboard-wide-tile {
   width: 100%;
-  min-height: 92px;
+  min-height: 76px;
   grid-template-columns: 52px 1fr;
   justify-items: start;
   align-items: center;
@@ -336,7 +373,7 @@
   width: 42px;
   height: 42px;
   border-radius: 8px;
-  border: 4px solid #1d2430;
+  border: 3px solid #1d2430;
 }
 
 .admin-nav {
@@ -353,7 +390,7 @@
   min-height: 68px;
   text-align: left;
   padding: 0 6px;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -390,6 +427,7 @@
   min-height: 44px;
   background: #fff;
   font-weight: 700;
+  cursor: pointer;
 }
 
 .mini-nav-button.active {
@@ -399,11 +437,12 @@
 .admin-content {
   padding: 18px;
   background: #fff;
+  overflow: auto;
 }
 
 .admin-page h2 {
   margin: 0 0 14px;
-  font-size: 56px;
+  font-size: 44px;
 }
 
 .knowledge-header {
@@ -418,9 +457,10 @@
 }
 
 .knowledge-header h2 {
-  font-size: 60px;
+  font-size: 22px;
   text-align: center;
   margin: 0;
+  letter-spacing: 0.4px;
 }
 
 .profile-circle {
@@ -451,19 +491,19 @@
 
 .knowledge-card h3 {
   margin: 0 0 6px;
-  font-size: 56px;
+  font-size: 24px;
 }
 
 .knowledge-card p {
   margin: 0 0 10px;
-  font-size: 42px;
-  line-height: 1.05;
+  font-size: 18px;
+  line-height: 1.2;
 }
 
 .primary-button.compact {
-  min-height: 56px;
+  min-height: 44px;
   width: 100%;
-  font-size: 42px;
+  font-size: 16px;
 }
 
 .chats-page {
@@ -478,12 +518,13 @@
 
 .chip {
   min-width: 96px;
-  min-height: 50px;
+  min-height: 36px;
   border-radius: 999px;
   border: 2px solid #b4c6dd;
   background: #d1e8ff;
-  font-size: 40px;
+  font-size: 16px;
   font-weight: 700;
+  cursor: pointer;
 }
 
 .chip.circle {
@@ -512,7 +553,7 @@
 }
 
 .message-meta {
-  font-size: 46px;
+  font-size: 28px;
   font-weight: 700;
 }
 
@@ -543,7 +584,7 @@
 .form-hint {
   margin: -4px 0 10px;
   color: #9ca2b2;
-  font-size: 24px;
+  font-size: 14px;
 }
 
 .toggle-row {
@@ -558,8 +599,9 @@
   border: none;
   border-radius: 999px;
   background: #e9edf5;
-  font-size: 34px;
+  font-size: 16px;
   font-weight: 600;
+  cursor: pointer;
 }
 
 .toggle-pill.active {
@@ -570,7 +612,7 @@
 .form-label {
   display: block;
   margin-bottom: 8px;
-  font-size: 56px;
+  font-size: 22px;
   font-weight: 700;
 }
 
@@ -581,7 +623,7 @@
   border: 1px solid #dbe3f1;
   background: #fff;
   padding: 10px 12px;
-  font-size: 26px;
+  font-size: 16px;
   margin-bottom: 14px;
   box-sizing: border-box;
 }
@@ -608,7 +650,7 @@
 
 .profile-side h3 {
   margin: 0 0 12px;
-  font-size: 54px;
+  font-size: 22px;
 }
 
 .avatar-big {
@@ -616,10 +658,10 @@
   height: 120px;
   border-radius: 50%;
   border: 4px solid #1f2430;
-  font-size: 62px;
   display: grid;
   place-items: center;
   margin-bottom: 12px;
+  overflow: hidden;
 }
 
 @media (max-width: 700px) {
@@ -629,15 +671,15 @@
 
   .mode-switch {
     margin: 0;
-    border-radius: 0;
+    border-radius: 0 0 10px 10px;
   }
 
   .hero-banner h1 {
-    font-size: 38px;
+    font-size: 32px;
   }
 
   .feature-card {
-    font-size: 38px;
+    font-size: 18px;
   }
 
   .intro-card p,
@@ -648,7 +690,7 @@
   .admin-shell {
     grid-template-columns: 1fr;
     border-radius: 0;
-    min-height: calc(100vh - 52px);
+    min-height: calc(100svh - 52px);
   }
 
   .admin-sidebar {

@@ -29,9 +29,23 @@ export function App() {
       </section>
 
       {mode === 'widget' ? (
-        <WidgetPreview screen={widgetScreen} onScreenChange={setWidgetScreen} />
+        <WidgetPreview
+          screen={widgetScreen}
+          onScreenChange={setWidgetScreen}
+          onOpenAdmin={(screen) => {
+            setAdminScreen(screen)
+            setMode('admin')
+          }}
+        />
       ) : (
-        <AdminPreview screen={adminScreen} onScreenChange={setAdminScreen} />
+        <AdminPreview
+          screen={adminScreen}
+          onScreenChange={setAdminScreen}
+          onBackToWidget={() => {
+            setWidgetScreen('home')
+            setMode('widget')
+          }}
+        />
       )}
     </main>
   )
@@ -40,24 +54,35 @@ export function App() {
 function WidgetPreview({
   screen,
   onScreenChange,
+  onOpenAdmin,
 }: {
   screen: WidgetScreen
   onScreenChange: (screen: WidgetScreen) => void
+  onOpenAdmin: (screen: AdminScreen) => void
 }) {
+  const [message, setMessage] = useState('')
+
   return (
     <section class="widget-shell">
       <header class="widget-header">
-        <button class="icon-button" type="button" aria-label="Назад">
+        <button
+          class="icon-button"
+          type="button"
+          aria-label="Назад"
+          onClick={() => {
+            if (screen === 'chat') onScreenChange('home')
+          }}
+        >
           ←
         </button>
         <div class="brand-chip">
-          <div class="brand-icon" />
+          <img class="app-icon sm" src="/app-icon.png" alt="SupportPulse" />
           <div class="brand-copy">
             <strong>Помощник</strong>
             <span>ИИ-ассистент</span>
           </div>
         </div>
-        <button class="icon-button" type="button" aria-label="Меню">
+        <button class="icon-button" type="button" aria-label="Меню" onClick={() => onOpenAdmin('settings')}>
           −
         </button>
       </header>
@@ -69,16 +94,20 @@ function WidgetPreview({
           </div>
 
           <article class="card intro-card">
-            <div class="brand-icon intro-icon" />
+            <img class="app-icon intro-icon" src="/app-icon.png" alt="SupportPulse" />
             <p>Здравствуйте, добро пожаловать в SupportPulse. Пожалуйста, опишите вашу проблему...</p>
             <button class="primary-button" type="button" onClick={() => onScreenChange('chat')}>
               Задать вопрос
             </button>
           </article>
 
-          {['Функция 1', 'Функция 2', 'Функция 3'].map((item) => (
-            <button class="feature-card" type="button" key={item}>
-              {item}
+          {[
+            { title: 'Функция 1', target: 'chats' as const },
+            { title: 'Функция 2', target: 'settings' as const },
+            { title: 'Функция 3', target: 'profile' as const },
+          ].map((item) => (
+            <button class="feature-card" type="button" key={item.title} onClick={() => onOpenAdmin(item.target)}>
+              <span>{item.title}</span>
             </button>
           ))}
         </section>
@@ -99,6 +128,7 @@ function WidgetPreview({
           type="button"
           onClick={() => onScreenChange('home')}
         >
+          <span class="tab-icon">⌂</span>
           Дом
         </button>
         <button
@@ -106,17 +136,18 @@ function WidgetPreview({
           type="button"
           onClick={() => onScreenChange('chat')}
         >
+          <span class="tab-icon">💬</span>
           Чат
         </button>
       </footer>
 
       {screen === 'chat' && (
         <div class="composer">
-          <button class="composer-icon" type="button" aria-label="Вложение">
+          <button class="composer-icon" type="button" aria-label="Вложение" onClick={() => onOpenAdmin('chats')}>
             +
           </button>
-          <input type="text" placeholder="Сообщение..." />
-          <button class="composer-send" type="button" aria-label="Отправить">
+          <input type="text" placeholder="Сообщение..." value={message} onInput={(e) => setMessage((e.target as HTMLInputElement).value)} />
+          <button class="composer-send" type="button" aria-label="Отправить" onClick={() => setMessage('')}>
             ↑
           </button>
         </div>
@@ -128,9 +159,11 @@ function WidgetPreview({
 function AdminPreview({
   screen,
   onScreenChange,
+  onBackToWidget,
 }: {
   screen: AdminScreen
   onScreenChange: (screen: AdminScreen) => void
+  onBackToWidget: () => void
 }) {
   const adminTitle = screen === 'dashboard' ? 'Главная' : screen === 'chats' ? 'Мои чаты' : screen === 'settings' ? 'Настройки' : 'Профиль'
 
@@ -138,15 +171,17 @@ function AdminPreview({
     <section class="admin-shell">
       <aside class="admin-sidebar">
         <div class="panel-header">
-          <div class="small-logo" />
-          <span class="back-arrow">‹</span>
+          <img class="app-icon xs" src="/app-icon.png" alt="SupportPulse" />
+          <button class="back-button" type="button" onClick={() => onBackToWidget()}>
+            ‹
+          </button>
           <strong>{adminTitle}</strong>
         </div>
 
         {screen === 'dashboard' ? (
           <section class="dashboard-menu">
             <div class="dashboard-brand">
-              <div class="brand-icon large" />
+              <img class="app-icon md" src="/app-icon.png" alt="SupportPulse" />
               <div>
                 <strong>Главная</strong>
                 <p>SupportPulse</p>
@@ -155,14 +190,21 @@ function AdminPreview({
 
             <div class="dashboard-grid">
               {['Профиль', 'Сообщения', 'Настройки', 'О сервисе'].map((item) => (
-                <button class="dashboard-tile" type="button" key={item}>
+                <button
+                  class="dashboard-tile"
+                  type="button"
+                  key={item}
+                  onClick={() =>
+                    onScreenChange(item === 'Профиль' ? 'profile' : item === 'Сообщения' ? 'chats' : item === 'Настройки' ? 'settings' : 'dashboard')
+                  }
+                >
                   <div class="tile-icon" />
                   <span>{item}</span>
                 </button>
               ))}
             </div>
 
-            <button class="dashboard-wide-tile" type="button">
+            <button class="dashboard-wide-tile" type="button" onClick={() => onScreenChange('dashboard')}>
               <div class="tile-icon" />
               <span>База знаний</span>
             </button>
@@ -212,7 +254,7 @@ function AdminPreview({
             </header>
 
             <article class="knowledge-card">
-              <div class="brand-icon large" />
+              <img class="app-icon md" src="/app-icon.png" alt="SupportPulse" />
               <div>
                 <h3>Долгожданный запуск</h3>
                 <p>Спустя долгий период разработки SupportPulse наконец-то стал доступен для использования.</p>
@@ -284,7 +326,9 @@ function AdminPreview({
             </div>
             <div class="profile-side">
               <h3>Аватар профиля</h3>
-              <div class="avatar-big">◉</div>
+              <div class="avatar-big">
+                <img class="app-icon md" src="/app-icon.png" alt="Аватар" />
+              </div>
               <button class="primary-button compact" type="button">
                 Изменить
               </button>
