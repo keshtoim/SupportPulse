@@ -1,12 +1,11 @@
 // ─── domain/index.ts ─────────────────────────────────────────────────────────
-// Доменные модели — точное отражение схемы Supabase (PostgreSQL).
-// ТОЛЬКО бек (Express) импортирует этот файл напрямую.
-// Фронт работает исключительно через DTO.
+// Базовые доменные модели SupportPulse.
+// Эти типы можно использовать как на беке, так и на фронте в слоях данных.
 //
-// Типы данных выровнены под Supabase:
-//   • id-поля: string (UUID v4) — Supabase по умолчанию gen_random_uuid()
-//   • timestamps: string (ISO 8601) — именно так Supabase возвращает timestamptz
-//   • Нет Date-объектов: Supabase JS client не конвертирует автоматически
+// Примечания по типам:
+//   • id-поля: string (UUID v4)
+//   • timestamps: string (ISO 8601)
+//   • null используется там, где поле может отсутствовать в БД/API
 
 import { UserRole, TicketStatus, SessionState, SenderType } from "../enums";
 
@@ -91,4 +90,39 @@ export interface WidgetConfig {
   welcome_message: string;
   logo_url: string | null;
   privacy_policy_url: string | null;
+}
+
+// ── Frontend view models ─────────────────────────────────────────────────────
+// UI-модели для React/Preact, когда нужно описать состояние интерфейса
+// независимо от формата API DTO.
+
+export interface TicketListItemView {
+  ticketId: string;
+  status: TicketStatus;
+  clientName: string;
+  assignedOperatorName: string | null;
+  lastMessagePreview: string | null;
+  unreadCount: number;
+  updatedAt: string;
+}
+
+export interface TicketFiltersView {
+  status: TicketStatus | "all";
+  search: string;
+  onlyUnassigned: boolean;
+}
+
+export interface ChatMessageView {
+  id: string;
+  senderType: SenderType;
+  senderName: string | null;
+  content: string;
+  sentAt: string;
+  isPending?: boolean;
+}
+
+export interface WidgetTopicView {
+  topicId: string;
+  title: string;
+  itemsCount: number;
 }

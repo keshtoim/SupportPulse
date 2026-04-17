@@ -5,6 +5,4 @@ export * from "./enums";
 export * from "./dto";
 export * from "./api";
 export * from "./errors";
-
-// domain/ намеренно НЕ реэкспортируется отсюда —
-// его импортирует только бек напрямую: import { User } from "@supportpulse/shared/domain"
+export * from "./domain";
