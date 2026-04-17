@@ -1,100 +1,86 @@
 import { useState } from 'preact/hooks'
-import preactLogo from './assets/preact.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
 import './app.css'
 
 export function App() {
-  const [count, setCount] = useState(0)
+  const [screen, setScreen] = useState<'home' | 'chat'>('home')
 
   return (
-    <>
-      <section id="center">
-        <div class="hero">
-          <img src={heroImg} class="base" width="170" height="179" alt="" />
-          <img src={preactLogo} class="framework" alt="Preact logo" />
-          <img src={viteLogo} class="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/app.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button class="counter" onClick={() => setCount((count) => count + 1)}>
-          Count is {count}
+    <main class="widget-shell">
+      <header class="widget-header">
+        <button class="icon-button" type="button" aria-label="Назад">
+          ←
         </button>
-      </section>
-
-      <div class="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg class="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img class="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://preactjs.com/" target="_blank">
-                <img class="button-icon" src={preactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+        <div class="brand-chip">
+          <div class="brand-icon" />
+          <div class="brand-copy">
+            <strong>Помощник</strong>
+            <span>ИИ-ассистент</span>
+          </div>
         </div>
-        <div id="social">
-          <svg class="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg class="button-icon" role="presentation" aria-hidden="true">
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg class="button-icon" role="presentation" aria-hidden="true">
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg class="button-icon" role="presentation" aria-hidden="true">
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg class="button-icon" role="presentation" aria-hidden="true">
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+        <button class="icon-button" type="button" aria-label="Меню">
+          −
+        </button>
+      </header>
 
-      <div class="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      {screen === 'home' ? (
+        <section class="screen-body">
+          <div class="hero-banner">
+            <h1>Свяжитесь с нами!</h1>
+          </div>
+
+          <article class="card intro-card">
+            <div class="brand-icon intro-icon" />
+            <p>Здравствуйте, добро пожаловать в SupportPulse. Пожалуйста, опишите вашу проблему...</p>
+            <button class="primary-button" type="button" onClick={() => setScreen('chat')}>
+              Задать вопрос
+            </button>
+          </article>
+
+          {['Функция 1', 'Функция 2', 'Функция 3'].map((item) => (
+            <button class="feature-card" type="button" key={item}>
+              {item}
+            </button>
+          ))}
+        </section>
+      ) : (
+        <section class="screen-body chat-screen">
+          <article class="chat-bubble assistant">
+            <p>
+              Доброе утро и добро пожаловать в SupportPulse. Рады снова вас видеть. Пожалуйста, опишите
+              вашу ситуацию как можно подробнее, чтобы я мог эффективно вам помочь.
+            </p>
+          </article>
+        </section>
+      )}
+
+      <footer class="widget-footer">
+        <button
+          class={`tab-button ${screen === 'home' ? 'active' : ''}`}
+          type="button"
+          onClick={() => setScreen('home')}
+        >
+          Дом
+        </button>
+        <button
+          class={`tab-button ${screen === 'chat' ? 'active' : ''}`}
+          type="button"
+          onClick={() => setScreen('chat')}
+        >
+          Чат
+        </button>
+      </footer>
+
+      {screen === 'chat' && (
+        <div class="composer">
+          <button class="composer-icon" type="button" aria-label="Вложение">
+            +
+          </button>
+          <input type="text" placeholder="Сообщение..." />
+          <button class="composer-send" type="button" aria-label="Отправить">
+            ↑
+          </button>
+        </div>
+      )}
+    </main>
   )
 }
