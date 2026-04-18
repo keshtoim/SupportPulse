@@ -1,9 +1,10 @@
 import { defineConfig } from 'vite'
-import preact from '@preact/preset-vite'
+import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 import { fileURLToPath, URL } from 'node:url'
 
 export default defineConfig({
-  plugins: [preact()],
+  plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
       '@supportpulse/shared': fileURLToPath(new URL('../../src', import.meta.url)),

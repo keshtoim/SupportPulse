@@ -6,7 +6,7 @@
 // Аутентификация: Supabase Auth JWT в заголовке Authorization: Bearer <token>
 // Бек проверяет токен через supabase.auth.getUser(token)
 
-import {
+import type {
   UserDTO,
   TopicWithFAQDTO,
   FAQItemDTO,
@@ -18,7 +18,7 @@ import {
   WidgetConfigDTO,
   PaginatedResponse,
 } from "../dto";
-import { TicketStatus, UserRole } from "../enums";
+import type { TicketStatus, UserRole } from "../enums";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // AUTH  (FR-001 – FR-004)

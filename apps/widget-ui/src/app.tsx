@@ -1,12 +1,30 @@
-import { useState } from 'preact/hooks'
+import { useState, useEffect, useRef } from 'preact/hooks'
+import { api } from './services/api'
+import type { WidgetConfigDTO, TopicWithFAQDTO, FAQItemDTO, AIStreamChunk } from './services/api'
 import './app.css'
 
-type WidgetScreen = 'home' | 'chat'
+// document.currentScript is null for ES modules (deferred) — use querySelector instead
+const TENANT_ID =
+  (import.meta.env.VITE_TENANT_ID as string | undefined) ??
+  document.querySelector<HTMLScriptElement>('script[data-tenant-id]')?.dataset?.tenantId ??
+  'demo'
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type WidgetView = 'home' | 'contact' | 'chat'
 type AdminScreen = 'dashboard' | 'chats' | 'settings' | 'profile'
+
+interface LocalMessage {
+  id: string
+  role: 'user' | 'ai' | 'operator'
+  content: string
+  pending?: boolean
+}
+
+// ─── Dev preview root ─────────────────────────────────────────────────────────
 
 export function App() {
   const [mode, setMode] = useState<'widget' | 'admin'>('widget')
-  const [widgetScreen, setWidgetScreen] = useState<WidgetScreen>('home')
   const [adminScreen, setAdminScreen] = useState<AdminScreen>('dashboard')
 
   return (
@@ -29,153 +47,494 @@ export function App() {
       </section>
 
       {mode === 'widget' ? (
-        <WidgetPreview
-          screen={widgetScreen}
-          onScreenChange={setWidgetScreen}
-          onOpenAdmin={(screen) => {
-            setAdminScreen(screen)
-            setMode('admin')
-          }}
-        />
+        <WidgetApp />
       ) : (
-        <AdminPreview
-          screen={adminScreen}
-          onScreenChange={setAdminScreen}
-          onBackToWidget={() => {
-            setWidgetScreen('home')
-            setMode('widget')
-          }}
-        />
+        <AdminPreview screen={adminScreen} onScreenChange={setAdminScreen} />
       )}
     </main>
   )
 }
 
-function WidgetPreview({
-  screen,
-  onScreenChange,
-  onOpenAdmin,
-}: {
-  screen: WidgetScreen
-  onScreenChange: (screen: WidgetScreen) => void
-  onOpenAdmin: (screen: AdminScreen) => void
-}) {
-  const [message, setMessage] = useState('')
+// ─── Floating embed widget ────────────────────────────────────────────────────
+
+export function FloatingWidget() {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div class="sp-float">
+      {open && (
+        <div class="sp-float-panel">
+          <WidgetApp onClose={() => setOpen(false)} />
+        </div>
+      )}
+      <button
+        class={`sp-float-btn ${open ? 'open' : ''}`}
+        type="button"
+        aria-label={open ? 'Закрыть чат' : 'Открыть чат'}
+        onClick={() => setOpen((p) => !p)}
+      >
+        {open ? '✕' : '💬'}
+      </button>
+    </div>
+  )
+}
+
+// ─── Widget ───────────────────────────────────────────────────────────────────
+
+function WidgetApp({ onClose }: { onClose?: () => void } = {}) {
+  const [view, setView] = useState<WidgetView>('home')
+  const [config, setConfig] = useState<WidgetConfigDTO | null>(null)
+  const [topics, setTopics] = useState<TopicWithFAQDTO[]>([])
+  const [sessionId, setSessionId] = useState<string | null>(null)
+  const [messages, setMessages] = useState<LocalMessage[]>([])
+  const [input, setInput] = useState('')
+  const [sending, setSending] = useState(false)
+  const [configError, setConfigError] = useState(false)
+  const [escalated, setEscalated] = useState(false)
+  const esRef = useRef<EventSource | null>(null)
+
+  useEffect(() => {
+    api.getConfig(TENANT_ID).then(setConfig).catch(() => setConfigError(true))
+    api.getTopics(TENANT_ID).then(setTopics).catch(() => {})
+  }, [])
+
+  useEffect(() => () => { esRef.current?.close() }, [])
+
+  function openChat(prefill = '') {
+    if (prefill) setInput(prefill)
+    if (sessionId) { setView('chat'); return }
+    setView('contact')
+  }
+
+  async function startSession(name?: string, email?: string) {
+    try {
+      const contact = name || email ? { name, email } : undefined
+      const { session } = await api.createSession(TENANT_ID, contact)
+      setSessionId(session.sessionId)
+      const welcome = config?.welcomeMessage ?? 'Здравствуйте! Чем могу помочь?'
+      setMessages([{ id: 'welcome', role: 'ai', content: welcome }])
+    } catch {
+      setMessages([{
+        id: 'err-session',
+        role: 'ai',
+        content: 'Не удалось подключиться к серверу. Попробуйте позже.',
+      }])
+    }
+    setView('chat')
+  }
+
+  function sendMessage() {
+    if (!input.trim() || !sessionId || sending) return
+    const content = input.trim()
+    setInput('')
+    setSending(true)
+
+    const userId = `u-${Date.now()}`
+    const aiId = `ai-${Date.now()}`
+
+    setMessages((prev) => [
+      ...prev,
+      { id: userId, role: 'user', content },
+      { id: aiId, role: 'ai', content: '', pending: true },
+    ])
+
+    esRef.current?.close()
+    const es = new EventSource(api.streamUrl(sessionId, content))
+    esRef.current = es
+
+    let buffer = ''
+    es.onmessage = (e: MessageEvent) => {
+      const chunk = JSON.parse(e.data as string) as AIStreamChunk
+      buffer += chunk.delta ?? ''
+      setMessages((prev) =>
+        prev.map((m) => m.id === aiId ? { ...m, content: buffer, pending: !chunk.done } : m)
+      )
+      if (chunk.done || chunk.escalate) {
+        es.close()
+        setSending(false)
+        if (chunk.escalate) {
+          setEscalated(true)
+          setMessages((prev) => [
+            ...prev,
+            { id: `sys-${Date.now()}`, role: 'operator', content: '⏳ Ваш запрос передан оператору. Ожидайте ответа.' },
+          ])
+        }
+      }
+    }
+
+    es.onerror = () => {
+      es.close()
+      setSending(false)
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === aiId
+            ? { ...m, content: 'Ошибка получения ответа. Попробуйте ещё раз.', pending: false }
+            : m
+        )
+      )
+    }
+  }
+
+  async function callOperator() {
+    if (!sessionId || escalated) return
+    try {
+      await api.escalate(sessionId)
+      setEscalated(true)
+      setMessages((prev) => [
+        ...prev,
+        { id: `esc-${Date.now()}`, role: 'operator', content: '⏳ Оператор подключится к вам в ближайшее время.' },
+      ])
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        { id: `esc-err-${Date.now()}`, role: 'ai', content: 'Не удалось вызвать оператора. Попробуйте ещё раз.' },
+      ])
+    }
+  }
+
+  const goBack = () => setView(view === 'chat' || view === 'contact' ? 'home' : 'home')
+  const chatTabActive = view === 'chat' || view === 'contact'
 
   return (
     <section class="widget-shell">
+      {/* Header */}
       <header class="widget-header">
-        <button
-          class="icon-button"
-          type="button"
-          aria-label="Назад"
-          onClick={() => {
-            if (screen === 'chat') onScreenChange('home')
-          }}
-        >
+        <button class="icon-button" type="button" aria-label="Назад" onClick={goBack}>
           ←
         </button>
         <div class="brand-chip">
-          <img class="app-icon sm" src="/app-icon.png" alt="SupportPulse" />
+          <img
+            class="app-icon sm"
+            src={config?.logoUrl ?? '/app-icon.png'}
+            alt="SupportPulse"
+          />
           <div class="brand-copy">
             <strong>Помощник</strong>
             <span>ИИ-ассистент</span>
           </div>
         </div>
-        <button class="icon-button" type="button" aria-label="Меню" onClick={() => onOpenAdmin('settings')}>
-          −
-        </button>
+        {onClose ? (
+          <button class="icon-button" type="button" aria-label="Закрыть" onClick={onClose}>
+            ✕
+          </button>
+        ) : (
+          <div class="icon-button" aria-hidden="true" />
+        )}
       </header>
 
-      {screen === 'home' ? (
-        <section class="screen-body">
-          <div class="hero-banner">
-            <h1>Свяжитесь с нами!</h1>
-          </div>
-
-          <article class="card intro-card">
-            <img class="app-icon intro-icon" src="/app-icon.png" alt="SupportPulse" />
-            <p>Здравствуйте, добро пожаловать в SupportPulse. Пожалуйста, опишите вашу проблему...</p>
-            <button class="primary-button" type="button" onClick={() => onScreenChange('chat')}>
-              Задать вопрос
-            </button>
-          </article>
-
-          {[
-            { title: 'Функция 1', target: 'chats' as const },
-            { title: 'Функция 2', target: 'settings' as const },
-            { title: 'Функция 3', target: 'profile' as const },
-          ].map((item) => (
-            <button class="feature-card" type="button" key={item.title} onClick={() => onOpenAdmin(item.target)}>
-              <span>{item.title}</span>
-            </button>
-          ))}
-        </section>
-      ) : (
-        <section class="screen-body chat-screen">
-          <article class="chat-bubble assistant">
-            <p>
-              Доброе утро и добро пожаловать в SupportPulse. Рады снова вас видеть. Пожалуйста, опишите
-              вашу ситуацию как можно подробнее, чтобы я мог эффективно вам помочь.
-            </p>
-          </article>
-        </section>
+      {/* Screens */}
+      {view === 'home' && (
+        <HomeScreen
+          topics={topics}
+          error={configError}
+          onStartChat={openChat}
+        />
       )}
+      {view === 'contact' && (
+        <ContactForm
+          onSubmit={startSession}
+          onSkip={() => startSession()}
+        />
+      )}
+      {view === 'chat' && <ChatScreen messages={messages} />}
 
+      {/* Tab bar */}
       <footer class="widget-footer">
         <button
-          class={`tab-button ${screen === 'home' ? 'active' : ''}`}
+          class={`tab-button ${view === 'home' ? 'active' : ''}`}
           type="button"
-          onClick={() => onScreenChange('home')}
+          onClick={() => setView('home')}
         >
           <span class="tab-icon">⌂</span>
           Дом
         </button>
         <button
-          class={`tab-button ${screen === 'chat' ? 'active' : ''}`}
+          class={`tab-button ${chatTabActive ? 'active' : ''}`}
           type="button"
-          onClick={() => onScreenChange('chat')}
+          onClick={() => openChat()}
         >
           <span class="tab-icon">💬</span>
           Чат
         </button>
       </footer>
 
-      {screen === 'chat' && (
-        <div class="composer">
-          <button class="composer-icon" type="button" aria-label="Вложение" onClick={() => onOpenAdmin('chats')}>
-            +
-          </button>
-          <input type="text" placeholder="Сообщение..." value={message} onInput={(e) => setMessage((e.target as HTMLInputElement).value)} />
-          <button class="composer-send" type="button" aria-label="Отправить" onClick={() => setMessage('')}>
-            ↑
-          </button>
+      {/* Composer — only in chat */}
+      {view === 'chat' && (
+        <div class="composer-wrap">
+          {!escalated && (
+            <button class="escalate-link" type="button" onClick={callOperator}>
+              Позвать оператора
+            </button>
+          )}
+          {escalated && (
+            <p class="escalated-notice">⏳ Ожидание оператора</p>
+          )}
+          <div class="composer">
+            <div class="composer-icon" aria-hidden="true" />
+            <input
+              type="text"
+              placeholder="Сообщение..."
+              value={input}
+              onInput={(e) => setInput((e.target as HTMLInputElement).value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') sendMessage() }}
+              disabled={sending}
+            />
+            <button
+              class="composer-send"
+              type="button"
+              aria-label="Отправить"
+              onClick={sendMessage}
+              disabled={sending || !input.trim()}
+            >
+              ↑
+            </button>
+          </div>
         </div>
       )}
     </section>
   )
 }
 
+// ─── Home screen ──────────────────────────────────────────────────────────────
+
+function HomeScreen({
+  topics,
+  error,
+  onStartChat,
+}: {
+  topics: TopicWithFAQDTO[]
+  error: boolean
+  onStartChat: (prefill?: string) => void
+}) {
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState<FAQItemDTO[]>([])
+  const [searching, setSearching] = useState(false)
+  const [expanded, setExpanded] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!query.trim()) { setResults([]); return }
+    const t = setTimeout(() => {
+      setSearching(true)
+      api.searchFAQ(TENANT_ID, query)
+        .then((r) => setResults(r.results))
+        .catch(() => setResults([]))
+        .finally(() => setSearching(false))
+    }, 350)
+    return () => clearTimeout(t)
+  }, [query])
+
+  const FALLBACK = ['Часто задаваемые вопросы', 'Техническая поддержка', 'Обратная связь']
+  const showSearch = query.trim().length > 0
+
+  return (
+    <section class="screen-body">
+      <div class="hero-banner">
+        <h1>Свяжитесь<br />с нами!</h1>
+      </div>
+
+      <article class="card intro-card">
+        <img class="app-icon intro-icon" src="/app-icon.png" alt="SupportPulse" />
+        <p>Здравствуйте! Задайте вопрос нашему ИИ-ассистенту или найдите ответ в базе знаний.</p>
+        <button class="primary-button" type="button" onClick={() => onStartChat()}>
+          Задать вопрос
+        </button>
+      </article>
+
+      {/* Search */}
+      <div class="search-row">
+        <input
+          class="search-input"
+          type="search"
+          placeholder="Поиск по базе знаний..."
+          value={query}
+          onInput={(e) => setQuery((e.target as HTMLInputElement).value)}
+        />
+        {searching && <span class="search-spinner" />}
+      </div>
+
+      {error && <p class="error-hint">Не удалось загрузить данные. Проверьте подключение.</p>}
+
+      {/* Search results */}
+      {showSearch ? (
+        results.length > 0 ? (
+          <ul class="faq-results">
+            {results.map((item) => (
+              <li key={item.faqId}>
+                <button
+                  class="faq-result-item"
+                  type="button"
+                  onClick={() => onStartChat(item.question)}
+                >
+                  <span class="faq-q">{item.question}</span>
+                  <span class="faq-a">{item.answer}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          !searching && <p class="no-results">Ничего не найдено — попробуйте задать вопрос напрямую</p>
+        )
+      ) : (
+        /* Topic accordion or fallback */
+        topics.length > 0
+          ? topics.map((topic) => (
+              <div class="topic-block" key={topic.topicId}>
+                <button
+                  class={`feature-card topic-toggle ${expanded === topic.topicId ? 'expanded' : ''}`}
+                  type="button"
+                  onClick={() => setExpanded((p) => (p === topic.topicId ? null : topic.topicId))}
+                >
+                  <span>{topic.title}</span>
+                  <span class="topic-chevron">{expanded === topic.topicId ? '▲' : '▼'}</span>
+                </button>
+                {expanded === topic.topicId && (
+                  <ul class="faq-list">
+                    {topic.items.length > 0
+                      ? topic.items.map((item) => (
+                          <li key={item.faqId}>
+                            <button
+                              class="faq-item"
+                              type="button"
+                              onClick={() => onStartChat(item.question)}
+                            >
+                              {item.question}
+                            </button>
+                          </li>
+                        ))
+                      : <li class="faq-empty">В этой теме пока нет вопросов</li>
+                    }
+                  </ul>
+                )}
+              </div>
+            ))
+          : FALLBACK.map((t) => (
+              <button class="feature-card" type="button" key={t} onClick={() => onStartChat()}>
+                <span>{t}</span>
+              </button>
+            ))
+      )}
+    </section>
+  )
+}
+
+// ─── Contact form ─────────────────────────────────────────────────────────────
+
+function ContactForm({
+  onSubmit,
+  onSkip,
+}: {
+  onSubmit: (name?: string, email?: string) => void
+  onSkip: () => void
+}) {
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  async function handleSubmit() {
+    setBusy(true)
+    await onSubmit(name.trim() || undefined, email.trim() || undefined)
+    setBusy(false)
+  }
+
+  return (
+    <section class="screen-body contact-screen">
+      <div class="contact-card card">
+        <h2 class="contact-title">Представьтесь</h2>
+        <p class="contact-hint">
+          Это поможет оператору быстрее вам помочь. Поля не обязательны.
+        </p>
+
+        <label class="form-label" for="c-name">Имя</label>
+        <input
+          id="c-name"
+          class="text-input"
+          type="text"
+          placeholder="Ваше имя"
+          value={name}
+          onInput={(e) => setName((e.target as HTMLInputElement).value)}
+        />
+
+        <label class="form-label" for="c-email">Email</label>
+        <input
+          id="c-email"
+          class="text-input"
+          type="email"
+          placeholder="email@example.com"
+          value={email}
+          onInput={(e) => setEmail((e.target as HTMLInputElement).value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit() }}
+        />
+
+        <button
+          class="primary-button"
+          type="button"
+          disabled={busy}
+          onClick={handleSubmit}
+        >
+          {busy ? '...' : 'Начать чат'}
+        </button>
+
+        <button class="skip-button" type="button" onClick={onSkip}>
+          Пропустить
+        </button>
+      </div>
+    </section>
+  )
+}
+
+// ─── Chat screen ──────────────────────────────────────────────────────────────
+
+function ChatScreen({ messages }: { messages: LocalMessage[] }) {
+  const bottomRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
+
+  return (
+    <section class="screen-body chat-screen">
+      {messages.length === 0 && (
+        <p class="chat-empty">Начните диалог — задайте ваш вопрос</p>
+      )}
+      {messages.map((msg) => (
+        <article
+          key={msg.id}
+          class={`chat-bubble ${msg.role === 'user' ? 'user' : msg.role === 'operator' ? 'operator' : 'assistant'}`}
+        >
+          {msg.pending ? (
+            <span class="typing-dots"><span /><span /><span /></span>
+          ) : (
+            <p>{msg.content}</p>
+          )}
+        </article>
+      ))}
+      <div ref={bottomRef} />
+    </section>
+  )
+}
+
+// ─── Admin preview (placeholder — отдельное приложение apps/admin) ─────────────
+
 function AdminPreview({
   screen,
   onScreenChange,
-  onBackToWidget,
 }: {
   screen: AdminScreen
-  onScreenChange: (screen: AdminScreen) => void
-  onBackToWidget: () => void
+  onScreenChange: (s: AdminScreen) => void
 }) {
-  const adminTitle = screen === 'dashboard' ? 'Главная' : screen === 'chats' ? 'Мои чаты' : screen === 'settings' ? 'Настройки' : 'Профиль'
+  const titles: Record<AdminScreen, string> = {
+    dashboard: 'Главная',
+    chats: 'Мои чаты',
+    settings: 'Настройки',
+    profile: 'Профиль',
+  }
 
   return (
     <section class="admin-shell">
       <aside class="admin-sidebar">
         <div class="panel-header">
           <img class="app-icon xs" src="/app-icon.png" alt="SupportPulse" />
-          <button class="back-button" type="button" onClick={() => onBackToWidget()}>
-            ‹
-          </button>
-          <strong>{adminTitle}</strong>
+          <strong>{titles[screen]}</strong>
         </div>
 
         {screen === 'dashboard' ? (
@@ -187,26 +546,26 @@ function AdminPreview({
                 <p>SupportPulse</p>
               </div>
             </div>
-
             <div class="dashboard-grid">
-              {[
-                { title: 'Профиль', icon: '👤', screen: 'profile' as const },
-                { title: 'Сообщения', icon: '💬', screen: 'chats' as const },
-                { title: 'Настройки', icon: '⚙', screen: 'settings' as const },
-                { title: 'О сервисе', icon: '☰', screen: 'dashboard' as const },
-              ].map((item) => (
+              {(
+                [
+                  { title: 'Профиль', icon: '👤', s: 'profile' },
+                  { title: 'Сообщения', icon: '💬', s: 'chats' },
+                  { title: 'Настройки', icon: '⚙', s: 'settings' },
+                  { title: 'О сервисе', icon: '☰', s: 'dashboard' },
+                ] as { title: string; icon: string; s: AdminScreen }[]
+              ).map((item) => (
                 <button
                   class="dashboard-tile"
                   type="button"
                   key={item.title}
-                  onClick={() => onScreenChange(item.screen)}
+                  onClick={() => onScreenChange(item.s)}
                 >
                   <div class="tile-icon">{item.icon}</div>
                   <span>{item.title}</span>
                 </button>
               ))}
             </div>
-
             <button class="dashboard-wide-tile" type="button" onClick={() => onScreenChange('dashboard')}>
               <div class="tile-icon">🧾</div>
               <span>База знаний</span>
@@ -214,33 +573,34 @@ function AdminPreview({
           </section>
         ) : (
           <nav class="admin-nav">
-            <button class={`admin-nav-item ${screen === 'profile' ? 'active' : ''}`} type="button" onClick={() => onScreenChange('profile')}>
-              <span class="dot-circle" />
-              Основная информация
-            </button>
-            <button class="admin-nav-item" type="button">
-              <span class="dot-circle" />
-              Настройка
-            </button>
-            <button class="admin-nav-item" type="button">
-              <span class="dot-circle" />
-              Настройка
-            </button>
+            {(['profile', 'chats', 'settings'] as AdminScreen[]).map((s) => (
+              <button
+                key={s}
+                class={`admin-nav-item ${screen === s ? 'active' : ''}`}
+                type="button"
+                onClick={() => onScreenChange(s)}
+              >
+                <span class="dot-circle" />
+                {titles[s]}
+              </button>
+            ))}
           </nav>
         )}
 
         <div class="side-bottom-nav">
-          {[
-            { icon: '👤', target: 'profile' as const },
-            { icon: '💬', target: 'chats' as const },
-            { icon: '⚙', target: 'settings' as const },
-            { icon: '🧾', target: 'dashboard' as const },
-          ].map((item) => (
+          {(
+            [
+              { icon: '👤', s: 'profile' },
+              { icon: '💬', s: 'chats' },
+              { icon: '⚙', s: 'settings' },
+              { icon: '🧾', s: 'dashboard' },
+            ] as { icon: string; s: AdminScreen }[]
+          ).map((item) => (
             <button
-              class={`mini-nav-button ${screen === item.target ? 'active' : ''}`}
+              class={`mini-nav-button ${screen === item.s ? 'active' : ''}`}
               type="button"
               key={item.icon}
-              onClick={() => onScreenChange(item.target)}
+              onClick={() => onScreenChange(item.s)}
             >
               {item.icon}
             </button>
@@ -255,36 +615,28 @@ function AdminPreview({
               <h2>База знаний</h2>
               <div class="profile-circle">◔</div>
             </header>
-
             <article class="knowledge-card">
               <img class="app-icon md" src="/app-icon.png" alt="SupportPulse" />
               <div>
                 <h3>Долгожданный запуск</h3>
                 <p>Спустя долгий период разработки SupportPulse наконец-то стал доступен для использования.</p>
-                <button class="primary-button compact" type="button">
-                  Использовать
-                </button>
+                <button class="primary-button compact" type="button">Использовать</button>
               </div>
             </article>
           </div>
         )}
-
         {screen === 'chats' && (
           <div class="admin-page chats-page">
             <header class="chat-controls">
-              <button class="chip" type="button">
-                Дата
-              </button>
+              <button class="chip" type="button">Дата</button>
               <button class="chip circle" type="button" aria-label="Фильтр" />
             </header>
-
             <div class="chat-canvas">
               <div class="message-row right">
                 <div class="message-meta">Имя</div>
                 <div class="avatar-circle" />
                 <div class="bubble-line" />
               </div>
-
               <div class="message-row left">
                 <div class="avatar-circle" />
                 <div>
@@ -295,36 +647,26 @@ function AdminPreview({
             </div>
           </div>
         )}
-
         {screen === 'settings' && (
           <div class="admin-page">
             <h2>Активация виджета</h2>
             <div class="toggle-row">
-              <button class="toggle-pill active" type="button">
-                Включен
-              </button>
-              <button class="toggle-pill" type="button">
-                Выключен
-              </button>
+              <button class="toggle-pill active" type="button">Включен</button>
+              <button class="toggle-pill" type="button">Выключен</button>
             </div>
             <label class="form-label" for="site-url">
               Адрес сайта<span class="required">*</span>
             </label>
-            <p class="form-hint">На нем будет размещен виджет поддержки</p>
+            <p class="form-hint">На нём будет размещён виджет поддержки</p>
             <input id="site-url" class="text-input" type="text" placeholder="https://www.example.com" />
           </div>
         )}
-
         {screen === 'profile' && (
           <div class="profile-layout">
             <div class="profile-main">
-              <label class="form-label" for="display-name">
-                Отображаемое имя
-              </label>
+              <label class="form-label" for="display-name">Отображаемое имя</label>
               <input id="display-name" class="text-input" type="text" placeholder="Имя профиля" />
-              <label class="form-label" for="bio">
-                Биография
-              </label>
+              <label class="form-label" for="bio">Биография</label>
               <textarea id="bio" class="text-area" />
             </div>
             <div class="profile-side">
@@ -332,9 +674,7 @@ function AdminPreview({
               <div class="avatar-big">
                 <img class="app-icon md" src="/app-icon.png" alt="Аватар" />
               </div>
-              <button class="primary-button compact" type="button">
-                Изменить
-              </button>
+              <button class="primary-button compact" type="button">Изменить</button>
             </div>
           </div>
         )}

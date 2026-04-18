@@ -9,7 +9,7 @@
 //   • null вместо undefined там, где Supabase возвращает NULL
 //   • Вложенные объекты там, где фронту нужны данные за один запрос
 
-import {
+import type {
   UserRole,
   TicketStatus,
   SessionState,
