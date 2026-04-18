@@ -8,7 +8,7 @@ import type {
   UserRepository,
   WidgetConfigRepository
 } from "../ports";
-import type { AuthenticatedUser } from "../../domain/model";
+import { AppError, type AuthenticatedUser } from "../../domain/model";
 import { addAuditEntry, ensureRole, platformRoles } from "./support";
 
 type PlatformServiceDependencies = {
@@ -71,7 +71,7 @@ export class PlatformAdministrationApplicationService {
     const tenant = await this.dependencies.tenantRepository.getById(tenantId);
 
     if (!tenant) {
-      throw new Error("Тенант не найден.");
+      throw new AppError("Тенант не найден.", 404, "TENANT_NOT_FOUND");
     }
 
     const updated = await this.dependencies.tenantRepository.update({
@@ -96,18 +96,20 @@ export class PlatformAdministrationApplicationService {
   async getMetrics(actor: AuthenticatedUser) {
     ensureRole(actor, platformRoles);
 
-    const [tenants, demoTenantUsers, tickets, demoSessions] = await Promise.all([
+    const [tenants, tickets] = await Promise.all([
       this.dependencies.tenantRepository.list(),
-      this.dependencies.userRepository.listByTenant("tenant-acme"),
-      this.dependencies.ticketRepository.listAll(),
-      this.dependencies.sessionRepository.listByTenant("tenant-acme")
+      this.dependencies.ticketRepository.listAll()
     ]);
+    const userBuckets = await Promise.all(tenants.map((tenant) => this.dependencies.userRepository.listByTenant(tenant.id)));
+    const sessionBuckets = await Promise.all(tenants.map((tenant) => this.dependencies.sessionRepository.listByTenant(tenant.id)));
+    const usersTotal = userBuckets.reduce((total, bucket) => total + bucket.length, 0);
+    const sessionsTotal = sessionBuckets.reduce((total, bucket) => total + bucket.length, 0);
 
     return {
       tenantsTotal: tenants.length,
       tenantsBlocked: tenants.filter((tenant) => tenant.isBlocked).length,
-      usersInDemoTenant: demoTenantUsers.length,
-      sessionsInDemoTenant: demoSessions.length,
+      usersTotal,
+      sessionsTotal,
       tickets: {
         total: tickets.length,
         new: tickets.filter((ticket) => ticket.status === "new").length,
