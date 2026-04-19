@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import path from "node:path";
 import cors from "cors";
 import express, { type NextFunction, type Request, type Response } from "express";
 import pinoHttp from "pino-http";
@@ -7,6 +9,7 @@ import { createApiRouter } from "../infrastructure/http/routes";
 
 export const createApp = (context: ApplicationContext) => {
   const app = express();
+  const frontendDistPath = path.resolve(process.cwd(), "apps/widget-ui/dist");
 
   app.use(
     cors({
@@ -22,6 +25,13 @@ export const createApp = (context: ApplicationContext) => {
   );
 
   app.use("/api", createApiRouter(context));
+
+  if (existsSync(frontendDistPath)) {
+    app.use(express.static(frontendDistPath));
+    app.get(/^(?!\/api).*/, (_request, response) => {
+      response.sendFile(path.join(frontendDistPath, "index.html"));
+    });
+  }
 
   app.use((error: unknown, _request: Request, response: Response, _next: NextFunction) => {
     if (error instanceof AppError) {

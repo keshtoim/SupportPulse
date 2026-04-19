@@ -59,6 +59,24 @@ export class WidgetSupportApplicationService {
     return this.dependencies.faqRepository.searchByTenant(tenantId, query);
   }
 
+  async getSessionMessages(tenantId: string, sessionId: string) {
+    await ensureTenantActive(this.dependencies.tenantRepository, tenantId);
+    const session = await this.dependencies.sessionRepository.getById(sessionId);
+
+    if (!session || session.tenantId !== tenantId) {
+      throw new AppError("Сессия не найдена.", 404, "SESSION_NOT_FOUND");
+    }
+
+    const ticket = await this.dependencies.ticketRepository.findBySessionId(sessionId);
+    const messages = await this.dependencies.messageRepository.listBySession(sessionId);
+
+    return {
+      session,
+      ticket,
+      messages
+    };
+  }
+
   async startSession(tenantId: string, payload: { customerName?: string; customerEmail?: string }) {
     await ensureTenantActive(this.dependencies.tenantRepository, tenantId);
     const now = this.dependencies.clock.now().toISOString();

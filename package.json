@@ -3,11 +3,14 @@
   "version": "0.1.0",
   "description": "Backend платформы SupportPulse для виджета поддержки, FAQ, AI-ответов и тикетов.",
   "private": true,
-  "main": "dist/main.js",
+  "main": "dist/src/main.js",
   "scripts": {
     "dev": "tsx watch src/main.ts",
+    "dev:frontend": "npm --prefix apps/widget-ui run dev",
     "build": "tsc -p tsconfig.json",
-    "start": "node dist/main.js",
+    "build:frontend": "npm --prefix apps/widget-ui run build",
+    "build:fullstack": "npm run build && npm run build:frontend",
+    "start": "node dist/src/main.js",
     "test": "vitest run"
   },
   "repository": {
