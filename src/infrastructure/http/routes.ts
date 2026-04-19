@@ -138,6 +138,17 @@ export const createApiRouter = (context: ApplicationContext) => {
     })
   );
 
+  router.get(
+    "/public/tenants/:tenantId/dialogue-sessions/:sessionId/messages",
+    asyncHandler(async (request, response) => {
+      const result = await context.widgetService.getSessionMessages(
+        getSingleValue(request.params.tenantId, "tenantId"),
+        getSingleValue(request.params.sessionId, "sessionId")
+      );
+      response.json(result);
+    })
+  );
+
   router.post(
     "/public/tenants/:tenantId/dialogue-sessions/:sessionId/messages",
     asyncHandler(async (request, response) => {
