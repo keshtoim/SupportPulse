@@ -92,9 +92,9 @@
 }
 
 .app-icon.md {
-  width: 120px;
-  height: 120px;
-  border-radius: 16px;
+  width: 72px;
+  height: 72px;
+  border-radius: 12px;
 }
 
 .brand-copy {
@@ -275,23 +275,24 @@
 }
 
 .admin-shell {
-  width: min(1080px, 100%);
+  width: 100%;
   min-height: calc(100svh - 56px);
   margin: 0 auto;
   background: #fff;
-  border-radius: 18px;
+  border-radius: 14px;
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 240px 1fr;
   overflow: hidden;
-  box-shadow: 0 8px 22px rgba(25, 42, 73, 0.16);
+  box-shadow: 0 4px 16px rgba(25, 42, 73, 0.12);
 }
 
 .admin-sidebar {
   border-right: 1px solid #dadde7;
-  padding: 14px 10px;
+  padding: 12px 8px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
+  background: #fafbfd;
 }
 
 .panel-header {
@@ -311,8 +312,8 @@
 }
 
 .panel-header strong {
-  font-size: 26px;
-  letter-spacing: 0.5px;
+  font-size: 16px;
+  letter-spacing: 0.2px;
 }
 
 .dashboard-menu {
@@ -329,14 +330,15 @@
 
 .dashboard-brand strong {
   display: block;
-  font-size: 24px;
+  font-size: 15px;
   line-height: 1;
 }
 
 .dashboard-brand p {
-  font-size: 18px;
+  font-size: 12px;
   margin: 0;
   line-height: 1;
+  color: #6a7382;
 }
 
 .dashboard-grid {
@@ -350,33 +352,32 @@
   border: none;
   border-radius: 10px;
   background: #f3f1ff;
-  padding: 12px;
-  min-height: 104px;
+  padding: 10px;
+  min-height: 80px;
   display: grid;
   justify-items: center;
   align-content: center;
-  gap: 8px;
-  font-size: 14px;
+  gap: 6px;
+  font-size: 12px;
   font-weight: 700;
   cursor: pointer;
 }
 
 .dashboard-wide-tile {
   width: 100%;
-  min-height: 76px;
-  grid-template-columns: 52px 1fr;
+  min-height: 52px;
+  grid-template-columns: 40px 1fr;
   justify-items: start;
   align-items: center;
 }
 
 .tile-icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 8px;
-  border: 3px solid #1d2430;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 2px solid #1d2430;
   display: grid;
   place-items: center;
-  font-size: 22px;
   line-height: 1;
 }
 
@@ -390,15 +391,16 @@
 .admin-nav-item {
   border: none;
   border-bottom: 1px solid #e4e6ef;
-  background: #fff;
-  min-height: 68px;
+  background: #fafbfd;
+  min-height: 44px;
   text-align: left;
-  padding: 0 6px;
-  font-size: 16px;
+  padding: 0 8px;
+  font-size: 13px;
   font-weight: 600;
   display: flex;
   align-items: center;
   gap: 10px;
+  cursor: pointer;
 }
 
 .admin-nav-item.active {
@@ -408,31 +410,34 @@
 }
 
 .dot-circle {
-  width: 28px;
-  height: 28px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
-  border: 3px solid #afb2bc;
+  border: 2px solid #afb2bc;
   flex-shrink: 0;
 }
 
 .side-bottom-nav {
   margin-top: auto;
   border: 1px solid #d6d9e4;
-  border-radius: 14px;
-  padding: 10px;
+  border-radius: 10px;
+  padding: 8px;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
+  gap: 6px;
+  background: #f0f2f8;
 }
 
 .mini-nav-button {
-  border: 3px solid #2c3140;
-  border-radius: 10px;
-  min-height: 44px;
+  border: 2px solid #2c3140;
+  border-radius: 8px;
+  min-height: 36px;
   background: #fff;
   font-weight: 700;
-  font-size: 18px;
+  font-size: 14px;
   cursor: pointer;
+  display: grid;
+  place-items: center;
 }
 
 .mini-nav-button.active {
@@ -440,51 +445,53 @@
 }
 
 .admin-content {
-  padding: 18px;
+  padding: 20px 24px;
   background: #fff;
   overflow: auto;
 }
 
 .admin-page h2 {
   margin: 0 0 14px;
-  font-size: 44px;
+  font-size: 20px;
+  font-weight: 700;
 }
 
 .knowledge-header {
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
-  border-radius: 10px;
+  border-radius: 8px;
   background: #c9e2ff;
-  border: 2px solid #8fa6c2;
-  padding: 8px 16px;
-  margin-bottom: 18px;
+  border: 1.5px solid #8fa6c2;
+  padding: 8px 14px;
+  margin-bottom: 14px;
 }
 
 .knowledge-header h2 {
-  font-size: 22px;
+  font-size: 16px;
   text-align: center;
   margin: 0;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.2px;
+  font-weight: 700;
 }
 
 .profile-circle {
-  width: 54px;
-  height: 54px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  border: 3px solid #1f2430;
+  border: 2px solid #1f2430;
   display: grid;
   place-items: center;
-  font-size: 24px;
+  font-size: 16px;
 }
 
 .knowledge-card {
   background: #fff;
-  border-radius: 14px;
-  padding: 10px;
+  border-radius: 10px;
+  padding: 12px;
   display: grid;
-  grid-template-columns: 180px 1fr;
-  gap: 14px;
+  grid-template-columns: 80px 1fr;
+  gap: 12px;
   align-items: start;
   border: 1px solid #d8dbe4;
 }
@@ -495,20 +502,23 @@
 }
 
 .knowledge-card h3 {
-  margin: 0 0 6px;
-  font-size: 24px;
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 700;
 }
 
 .knowledge-card p {
   margin: 0 0 10px;
-  font-size: 18px;
-  line-height: 1.2;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #4a5568;
 }
 
 .primary-button.compact {
-  min-height: 44px;
+  min-height: 34px;
   width: 100%;
-  font-size: 16px;
+  font-size: 13px;
+  border-radius: 8px;
 }
 
 .chats-page {
@@ -517,23 +527,23 @@
 
 .chat-controls {
   display: flex;
-  gap: 16px;
-  margin-bottom: 24px;
+  gap: 10px;
+  margin-bottom: 16px;
 }
 
 .chip {
-  min-width: 96px;
-  min-height: 36px;
+  min-width: 72px;
+  min-height: 28px;
   border-radius: 999px;
-  border: 2px solid #b4c6dd;
+  border: 1.5px solid #b4c6dd;
   background: #d1e8ff;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 700;
   cursor: pointer;
 }
 
 .chip.circle {
-  min-width: 50px;
+  min-width: 36px;
   border-radius: 50%;
 }
 
@@ -550,35 +560,36 @@
 }
 
 .message-row.right {
-  grid-template-columns: 1fr auto 70px;
+  grid-template-columns: 1fr auto 40px;
 }
 
 .message-row.left {
-  grid-template-columns: 70px 1fr;
+  grid-template-columns: 40px 1fr;
 }
 
 .message-meta {
-  font-size: 28px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 600;
+  color: #4a5568;
 }
 
 .bubble-line {
   width: 100%;
-  max-width: 420px;
-  height: 72px;
-  border-radius: 20px;
+  max-width: 340px;
+  height: 44px;
+  border-radius: 14px;
   background: #ececec;
 }
 
 .bubble-line.medium {
-  max-width: 300px;
+  max-width: 220px;
 }
 
 .avatar-circle {
-  width: 64px;
-  height: 64px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  border: 3px solid #b2b6be;
+  border: 2px solid #b2b6be;
   background: #efefef;
 }
 
@@ -587,24 +598,24 @@
 }
 
 .form-hint {
-  margin: -4px 0 10px;
+  margin: -4px 0 8px;
   color: #9ca2b2;
-  font-size: 14px;
+  font-size: 12px;
 }
 
 .toggle-row {
   display: flex;
-  gap: 8px;
-  margin-bottom: 18px;
+  gap: 6px;
+  margin-bottom: 16px;
 }
 
 .toggle-pill {
-  min-width: 160px;
-  min-height: 44px;
+  min-width: 110px;
+  min-height: 34px;
   border: none;
   border-radius: 999px;
   background: #e9edf5;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
 }
@@ -616,56 +627,65 @@
 
 .form-label {
   display: block;
-  margin-bottom: 8px;
-  font-size: 22px;
+  margin-bottom: 6px;
+  font-size: 14px;
   font-weight: 700;
 }
 
 .text-input,
 .text-area {
   width: 100%;
-  border-radius: 12px;
+  border-radius: 8px;
   border: 1px solid #dbe3f1;
-  background: #fff;
-  padding: 10px 12px;
-  font-size: 16px;
-  margin-bottom: 14px;
+  background: #f8f9fc;
+  padding: 8px 10px;
+  font-size: 13px;
+  margin-bottom: 12px;
   box-sizing: border-box;
+  outline: none;
+}
+
+.text-input:focus,
+.text-area:focus {
+  border-color: #4b94ff;
+  background: #fff;
 }
 
 .text-area {
-  min-height: 140px;
+  min-height: 100px;
   resize: vertical;
 }
 
 .profile-layout {
   display: grid;
-  grid-template-columns: 1fr 280px;
+  grid-template-columns: 1fr 240px;
   border-left: 1px solid #d8dbe4;
+  height: 100%;
 }
 
 .profile-main {
-  padding-right: 18px;
+  padding-right: 16px;
 }
 
 .profile-side {
   border-left: 1px solid #d8dbe4;
-  padding-left: 18px;
+  padding-left: 16px;
 }
 
 .profile-side h3 {
-  margin: 0 0 12px;
-  font-size: 22px;
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 700;
 }
 
 .avatar-big {
-  width: 120px;
-  height: 120px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
-  border: 4px solid #1f2430;
+  border: 3px solid #1f2430;
   display: grid;
   place-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   overflow: hidden;
 }
 
