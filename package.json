@@ -1,0 +1,57 @@
+{
+  "name": "supportpulse-backend",
+  "version": "0.1.0",
+  "description": "Backend платформы SupportPulse для виджета поддержки, FAQ, AI-ответов и тикетов.",
+  "private": true,
+  "main": "dist/main.js",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/main.js",
+    "test": "vitest run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/keshtoim/SupportPulse.git"
+  },
+  "keywords": [
+    "support",
+    "backend",
+    "express",
+    "typescript",
+    "langchain",
+    "supabase"
+  ],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/keshtoim/SupportPulse/issues"
+  },
+  "homepage": "https://github.com/keshtoim/SupportPulse#readme",
+  "dependencies": {
+    "@langchain/core": "^1.0.1",
+    "@langchain/openai": "^1.0.3",
+    "@supabase/supabase-js": "^2.79.0",
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "pino": "^10.1.0",
+    "pino-http": "^11.0.0",
+    "uuid": "^13.0.0",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^25.6.0",
+    "@types/supertest": "^7.2.0",
+    "supertest": "^7.2.2",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.4"
+  }
+}
