@@ -93,6 +93,13 @@ export function WidgetExperience({
     setMessages(payload.messages)
   }
 
+  // Polling: клиент видит ответы оператора без F5
+  useEffect(() => {
+    if (!sessionId || screen !== 'chat') return
+    const id = setInterval(() => void refreshSession(sessionId).catch(() => {}), 5000)
+    return () => clearInterval(id)
+  }, [sessionId, screen])
+
   const ensureSession = async (): Promise<string> => {
     if (sessionId) {
       return sessionId
