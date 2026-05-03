@@ -67,13 +67,13 @@ export function AdminExperience({
     })
   }
 
-  const loadTickets = async () => {
+  const loadTickets = async (silent = false) => {
     if (!auth) {
       return
     }
 
     try {
-      setTicketsLoading(true)
+      if (!silent) setTicketsLoading(true)
       setTicketError(null)
       const result = await authorizedRequest<TicketRecord[]>('/operator/tickets')
       setTickets(result)
@@ -86,22 +86,22 @@ export function AdminExperience({
         setSelectedTicketId(result[0]?.id ?? null)
       }
     } catch (error) {
-      setTicketError((error as Error).message)
+      if (!silent) setTicketError((error as Error).message)
     } finally {
-      setTicketsLoading(false)
+      if (!silent) setTicketsLoading(false)
     }
   }
 
-  const loadTicketMessages = async (ticketId: string) => {
+  const loadTicketMessages = async (ticketId: string, silent = false) => {
     try {
-      setMessagesLoading(true)
+      if (!silent) setMessagesLoading(true)
       setTicketError(null)
       const result = await authorizedRequest<MessageRecord[]>(`/operator/tickets/${ticketId}/messages`)
       setTicketMessages(result)
     } catch (error) {
-      setTicketError((error as Error).message)
+      if (!silent) setTicketError((error as Error).message)
     } finally {
-      setMessagesLoading(false)
+      if (!silent) setMessagesLoading(false)
     }
   }
 
@@ -148,6 +148,20 @@ export function AdminExperience({
     }
 
     void loadTicketMessages(selectedTicketId)
+  }, [auth, selectedTicketId])
+
+  // Polling: список тикетов обновляется каждые 5с на экране очереди
+  useEffect(() => {
+    if (!auth || screen !== 'chats') return
+    const id = setInterval(() => void loadTickets(true), 5000)
+    return () => clearInterval(id)
+  }, [auth, screen, selectedTicketId])
+
+  // Polling: переписка обновляется каждые 5с пока открыт тикет
+  useEffect(() => {
+    if (!auth || !selectedTicketId) return
+    const id = setInterval(() => void loadTicketMessages(selectedTicketId, true), 5000)
+    return () => clearInterval(id)
   }, [auth, selectedTicketId])
 
   const handleLogin = async (event: Event) => {
