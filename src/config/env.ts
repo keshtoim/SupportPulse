@@ -12,7 +12,9 @@ const envSchema = z.object({
   ACCESS_TOKEN_TTL: z.string().default("15m"),
   REFRESH_TOKEN_TTL: z.string().default("7d"),
   OPENAI_API_KEY: z.string().optional().transform((value) => value?.trim() || undefined),
-  OPENAI_MODEL: z.string().default("gpt-4o-mini")
+  OPENAI_MODEL: z.string().default("gpt-4o-mini"),
+  SUPABASE_URL: z.string().url().optional(),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().optional()
 });
 
 export type AppEnv = {
@@ -25,6 +27,8 @@ export type AppEnv = {
   refreshTokenTtl: string;
   openAiApiKey?: string;
   openAiModel: string;
+  supabaseUrl?: string;
+  supabaseServiceRoleKey?: string;
 };
 
 export const loadEnv = (): AppEnv => {
@@ -39,6 +43,8 @@ export const loadEnv = (): AppEnv => {
     accessTokenTtl: parsed.ACCESS_TOKEN_TTL,
     refreshTokenTtl: parsed.REFRESH_TOKEN_TTL,
     openAiApiKey: parsed.OPENAI_API_KEY,
-    openAiModel: parsed.OPENAI_MODEL
+    openAiModel: parsed.OPENAI_MODEL,
+    supabaseUrl: parsed.SUPABASE_URL,
+    supabaseServiceRoleKey: parsed.SUPABASE_SERVICE_ROLE_KEY
   };
 };
