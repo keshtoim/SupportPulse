@@ -387,7 +387,11 @@ export function WidgetExperience({
               type="button"
               onClick={() => onScreenChange('home')}
             >
-              <span class="tab-icon">⌂</span>
+              <span class="tab-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 12L12 3l9 9" /><path d="M9 21V12h6v9" /><path d="M3 12v9h18v-9" />
+                </svg>
+              </span>
               Дом
             </button>
             <button
@@ -395,7 +399,11 @@ export function WidgetExperience({
               type="button"
               onClick={() => onScreenChange('chat')}
             >
-              <span class="tab-icon">💬</span>
+              <span class="tab-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
+              </span>
               Чат
             </button>
           </footer>
