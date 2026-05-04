@@ -726,17 +726,6 @@ html.embed-mode .widget-shell {
     font-size: 16px;
   }
 
-  .admin-shell {
-    grid-template-columns: 1fr;
-    border-radius: 0;
-    min-height: calc(100svh - 52px);
-  }
-
-  .admin-sidebar {
-    border-right: none;
-    border-bottom: 1px solid #e7ebf3;
-  }
-
   .knowledge-card {
     grid-template-columns: 1fr;
   }
@@ -752,6 +741,107 @@ html.embed-mode .widget-shell {
     margin-top: 10px;
     padding-top: 10px;
     padding-left: 0;
+  }
+}
+
+/* Tablet + mobile: shared content tweaks */
+@media (max-width: 899px) {
+  .admin-page h2 {
+    font-size: 32px;
+  }
+}
+
+/* Tablet: icon rail */
+@media (min-width: 640px) and (max-width: 899px) {
+  .admin-shell {
+    grid-template-columns: 64px 1fr;
+    border-radius: 12px;
+  }
+
+  .admin-sidebar {
+    padding: 10px 6px;
+    align-items: center;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    flex-direction: column;
+    gap: 4px;
+    padding: 2px 0 8px;
+  }
+
+  .panel-header strong {
+    display: none;
+  }
+
+  .back-button {
+    font-size: 22px;
+  }
+
+  .dashboard-menu {
+    display: none;
+  }
+
+  .side-bottom-nav {
+    width: 100%;
+    grid-template-columns: 1fr;
+    gap: 6px;
+    padding: 6px;
+  }
+
+  .mini-nav-button {
+    min-height: 40px;
+  }
+}
+
+/* Mobile: compact top bar */
+@media (max-width: 639px) {
+  .admin-shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+    border-radius: 0;
+    min-height: calc(100svh - 52px);
+  }
+
+  .admin-sidebar {
+    flex-direction: row;
+    align-items: center;
+    padding: 6px 10px;
+    border-right: none;
+    border-bottom: 1px solid #dadde7;
+    gap: 0;
+  }
+
+  .panel-header {
+    flex: 1;
+    border-bottom: none;
+    padding: 0;
+  }
+
+  .dashboard-menu {
+    display: none;
+  }
+
+  .side-bottom-nav {
+    margin-top: 0;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    gap: 4px;
+    grid-template-columns: repeat(4, 36px);
+  }
+
+  .mini-nav-button {
+    min-height: 36px;
+    width: 36px;
+  }
+
+  .admin-content {
+    padding: 12px;
+  }
+
+  .admin-page h2 {
+    font-size: 28px;
   }
 }
 
