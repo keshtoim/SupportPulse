@@ -109,9 +109,9 @@ html.embed-mode .widget-shell {
 }
 
 .app-icon.md {
-  width: 120px;
-  height: 120px;
-  border-radius: 16px;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
 }
 
 .brand-copy {
@@ -306,68 +306,69 @@ html.embed-mode .widget-shell {
   background: #fff;
   border-radius: 18px;
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 200px 1fr;
   overflow: hidden;
   box-shadow: 0 8px 22px rgba(25, 42, 73, 0.16);
 }
 
 .admin-sidebar {
   border-right: 1px solid #dadde7;
-  padding: 14px 10px;
+  padding: 10px 8px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .panel-header {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   border-bottom: 1px solid #e4e6ef;
-  padding: 4px 4px 10px;
+  padding: 2px 4px 8px;
 }
 
 .back-button {
   border: none;
   background: transparent;
-  font-size: 34px;
+  font-size: 26px;
   line-height: 1;
   cursor: pointer;
 }
 
 .panel-header strong {
-  font-size: 26px;
-  letter-spacing: 0.5px;
+  font-size: 18px;
+  letter-spacing: 0.3px;
 }
 
 .dashboard-menu {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 8px;
 }
 
 .dashboard-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .dashboard-brand strong {
   display: block;
-  font-size: 24px;
-  line-height: 1;
+  font-size: 14px;
+  line-height: 1.2;
 }
 
 .dashboard-brand p {
-  font-size: 18px;
+  font-size: 12px;
   margin: 0;
   line-height: 1;
+  color: #666;
 }
 
 .dashboard-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 8px;
 }
 
 .dashboard-tile,
@@ -375,37 +376,37 @@ html.embed-mode .widget-shell {
   border: none;
   border-radius: 10px;
   background: #f3f1ff;
-  padding: 12px;
-  min-height: 104px;
+  padding: 10px 8px;
+  min-height: 76px;
   display: grid;
   justify-items: center;
   align-content: center;
-  gap: 8px;
-  font-size: 14px;
+  gap: 6px;
+  font-size: 12px;
   font-weight: 700;
   cursor: pointer;
 }
 
 .dashboard-wide-tile {
   width: 100%;
-  min-height: 76px;
-  grid-template-columns: 52px 1fr;
+  min-height: 52px;
+  grid-template-columns: 40px 1fr;
   justify-items: start;
   align-items: center;
 }
 
 .tile-icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 8px;
-  border: 3px solid #1d2430;
+  width: 34px;
+  height: 34px;
+  border-radius: 7px;
+  border: 2px solid #1d2430;
   display: grid;
   place-items: center;
 }
 
 .tile-icon svg {
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
 }
 
 .admin-nav {
@@ -446,17 +447,17 @@ html.embed-mode .widget-shell {
 .side-bottom-nav {
   margin-top: auto;
   border: 1px solid #d6d9e4;
-  border-radius: 14px;
-  padding: 10px;
+  border-radius: 12px;
+  padding: 8px;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
+  gap: 6px;
 }
 
 .mini-nav-button {
-  border: 3px solid #2c3140;
-  border-radius: 10px;
-  min-height: 44px;
+  border: 2px solid #2c3140;
+  border-radius: 8px;
+  min-height: 36px;
   background: #fff;
   cursor: pointer;
   display: grid;
@@ -464,8 +465,8 @@ html.embed-mode .widget-shell {
 }
 
 .mini-nav-button svg {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
 }
 
 .mini-nav-button.active {
