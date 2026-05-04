@@ -185,10 +185,10 @@ html.embed-mode .widget-shell {
   grid-column: 1 / -1;
   border: none;
   border-radius: 18px;
-  min-height: 74px;
+  min-height: 84px;
   color: #fff;
   background: #4b94ff;
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 700;
   cursor: pointer;
 }
@@ -239,14 +239,14 @@ html.embed-mode .widget-shell {
 }
 
 .tab-button {
-  min-height: 86px;
+  min-height: 68px;
   border: none;
   background: #fff;
-  font-size: 44px;
+  font-size: 12px;
   font-weight: 700;
   display: grid;
   place-items: center;
-  gap: 2px;
+  gap: 4px;
   cursor: pointer;
 }
 
@@ -540,9 +540,9 @@ html.embed-mode .widget-shell {
 }
 
 .primary-button.compact {
-  min-height: 44px;
+  min-height: 52px;
   width: 100%;
-  font-size: 16px;
+  font-size: 18px;
 }
 
 .chats-page {
@@ -997,9 +997,9 @@ html.embed-mode .widget-shell {
   border-radius: 14px;
   background: #e9eef8;
   color: #263248;
-  min-height: 44px;
-  padding: 0 16px;
-  font-size: 14px;
+  min-height: 52px;
+  padding: 0 20px;
+  font-size: 16px;
   font-weight: 700;
   cursor: pointer;
 }
