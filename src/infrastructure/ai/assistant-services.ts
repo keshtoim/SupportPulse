@@ -99,7 +99,7 @@ export class FaqRagAnswerService implements SupportAnswerService {
       };
     }
 
-    if (context.question.trim().length < 12 || topArticles[0].score === 1) {
+    if (context.question.trim().length < 12) {
       return {
         kind: "clarify" as const,
         message: "Чтобы ответить точнее, пожалуйста, уточните вопрос или добавьте номер заказа/деталь проблемы."

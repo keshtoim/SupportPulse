@@ -162,8 +162,7 @@ export function WidgetExperience({
       )
 
       setDraft('')
-      setSessionId(payload.session.id)
-      await refreshSession(payload.session.id)
+      applyPayload(payload)
     } catch (error) {
       setChatError((error as Error).message)
     } finally {
@@ -188,13 +187,25 @@ export function WidgetExperience({
         },
       )
 
-      setSessionId(payload.session.id)
-      await refreshSession(payload.session.id)
+      applyPayload(payload)
       onScreenChange('chat')
     } catch (error) {
       setChatError((error as Error).message)
     } finally {
       setSending(false)
+    }
+  }
+
+  const applyPayload = (payload: PostMessageResponse) => {
+    setSessionId(payload.session.id)
+    setSession(payload.session)
+    if (payload.ticket !== undefined) setTicket(payload.ticket ?? null)
+    const incoming = [payload.clientMessage, payload.reply].filter(Boolean) as import('./api').MessageRecord[]
+    if (incoming.length > 0) {
+      setMessages(prev => {
+        const existingIds = new Set(prev.map(m => m.id))
+        return [...prev, ...incoming.filter(m => !existingIds.has(m.id))]
+      })
     }
   }
 
