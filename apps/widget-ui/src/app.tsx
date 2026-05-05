@@ -18,18 +18,24 @@ export function App() {
 
   if (isEmbed) {
     document.documentElement.classList.add('embed-mode')
-    return (
-      <WidgetExperience
-        active
-        tenantId={tenantId}
-        screen="home"
-        onScreenChange={() => {}}
-        onOpenAdmin={() => {}}
-      />
-    )
+    return <EmbedApp tenantId={tenantId} />
   }
 
   return <NormalApp tenantId={tenantId} />
+}
+
+function EmbedApp({ tenantId }: { tenantId: string }) {
+  const [screen, setScreen] = useState<WidgetScreen>('home')
+
+  return (
+    <WidgetExperience
+      active
+      tenantId={tenantId}
+      screen={screen}
+      onScreenChange={setScreen}
+      onOpenAdmin={() => {}}
+    />
+  )
 }
 
 function NormalApp({ tenantId }: { tenantId: string }) {
