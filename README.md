@@ -52,230 +52,282 @@
 
 ---
 
-## Архитектура
+## Архитектура системы
+
+Система состоит из клиентских интерфейсов, единого бэкенда, AI-подсистемы и изолированного хранилища данных.
 
 ```mermaid
 flowchart TD
-    subgraph Client["Браузер клиента"]
-        W[Виджет\nPreact iframe]
+    subgraph Users [" "]
+        direction LR
+        AdminC["Администратор компании"]
+        Client["Клиент"]
+        Operator["Оператор"]
+        AdminP["Администратор платформы"]
     end
 
-    subgraph Operator["Браузер оператора / компании"]
-        A[Админ-панель\nPreact SPA]
+    subgraph Interfaces ["Клиентские интерфейсы"]
+        direction LR
+        AdminCompanyUI["Админка компании"]
+        WidgetUI["Виджет поддержки"]
+        OperatorUI["Админка оператора"]
+        AdminPlatformUI["Админка платформы"]
     end
 
-    subgraph Backend["Backend — Node.js / Express"]
-        direction TB
-        PUB[Public API\n/api/public/...]
-        OPR[Operator API\n/api/operator/...]
-        CMP[Company API\n/api/company/...]
-        PLT[Platform API\n/api/platform/...]
-        APP[Application Services]
-        AI[AI / FAQ RAG\nLangChain + OpenAI]
-        PUB & OPR & CMP & PLT --> APP
-        APP --> AI
+    AdminC --> AdminCompanyUI
+    Client --> WidgetUI
+    Operator --> OperatorUI
+    AdminP --> AdminPlatformUI
+
+    subgraph Backend ["Серверная часть"]
+        Core["Backend платформы"]
     end
 
-    subgraph Storage["Хранилище"]
-        DB[(Supabase\nPostgreSQL)]
+    AdminCompanyUI --> Core
+    WidgetUI --> Core
+    OperatorUI --> Core
+    AdminPlatformUI --> Core
+
+    subgraph AI ["Подсистема базы знаний и AI"]
+        KB["База знаний и AI-агент"]
     end
 
-    W -->|REST| PUB
-    A -->|REST + JWT| OPR & CMP & PLT
-    APP <-->|Supabase client| DB
+    subgraph DB ["Хранение данных"]
+        Storage[(Хранилище данных системы)]
+    end
+
+    Core <--> KB
+    Core <--> Storage
 ```
 
 ---
 
-## ER-диаграмма
+## Схема базы данных (ER Diagram)
+
+Основа системы — строгая изоляция данных по компаниям-клиентам (tenant_id).
 
 ```mermaid
 erDiagram
-    TENANTS ||--o{ USERS : has
-    TENANTS ||--|| WIDGET_CONFIGS : has
-    TENANTS ||--o{ TOPICS : has
-    TOPICS ||--o{ FAQ_ARTICLES : contains
-    TENANTS ||--o{ DIALOGUE_SESSIONS : has
-    DIALOGUE_SESSIONS ||--o| TICKETS : escalates_to
-    DIALOGUE_SESSIONS ||--o{ MESSAGES : contains
-    TICKETS ||--o{ MESSAGES : contains
-    USERS ||--o{ TICKETS : claims
+    TENANTS ||--o{ TOPICS : "1:N - каждый Tenant имеет темы"
+    TENANTS ||--o{ FAQ_ARTICLES : "1:N - каждый Tenant владеет FAQ"
+    TENANTS ||--o{ USERS : "1:N - каждый Tenant имеет пользователей"
+    TENANTS ||--o{ DIALOGUE_SESSIONS : "1:N - каждый Tenant имеет сессии"
 
     TENANTS {
-        uuid id PK
+        uuid tenant_id PK
         string name
-        bool is_blocked
     }
-    USERS {
-        uuid id PK
-        uuid tenant_id FK
-        string email
-        string role
-    }
-    WIDGET_CONFIGS {
-        uuid id PK
-        uuid tenant_id FK
-        string brand_color
-        string welcome_message
-        string tone_of_voice
-    }
+
     TOPICS {
-        uuid id PK
+        uuid topic_id PK
         uuid tenant_id FK
         string title
     }
+
     FAQ_ARTICLES {
-        uuid id PK
+        uuid faq_id PK
         uuid topic_id FK
+        uuid tenant_id FK
         string question
-        string answer
+        text answer
     }
-    DIALOGUE_SESSIONS {
-        uuid id PK
+    
+    TOPICS ||--o{ FAQ_ARTICLES : "1:N - каждая тема содержит FAQ"
+
+    USERS {
+        uuid user_id PK
         uuid tenant_id FK
-        string customer_name
-        string customer_email
+        string role
     }
+
     TICKETS {
-        uuid id PK
-        uuid session_id FK
+        uuid ticket_id PK
         uuid tenant_id FK
-        uuid assigned_to FK
+        uuid session_id FK
         string status
-        string reason
+        uuid assigned_user_id FK
     }
+
+    USERS ||--o{ TICKETS : "1:N - пользователь может быть назначен на тикеты"
+
+    DIALOGUE_SESSIONS {
+        uuid session_id PK
+        uuid tenant_id FK
+        string state
+    }
+    
+    DIALOGUE_SESSIONS ||--o| TICKETS : "0..1 - сессия может создавать тикет"
+
     MESSAGES {
-        uuid id PK
+        uuid message_id PK
         uuid session_id FK
         uuid ticket_id FK
-        string sender_type
         text content
-        timestamp created_at
+        string sender_type
     }
+
+    DIALOGUE_SESSIONS ||--o{ MESSAGES : "1:N - каждая сессия содержит сообщения"
 ```
 
 ---
 
-## Доменная модель
+## Доменная модель (Class Diagram)
+
+Структура основных сущностей приложения и их базовые методы.
 
 ```mermaid
 classDiagram
     class Tenant {
-        +string id
+        +int tenantId
         +string name
-        +boolean isBlocked
+        +bool isBlocked
+        +rename(newName: string)
+        +block()
+        +unblock()
     }
+
     class WidgetConfig {
+        +int configId
+        +int tenantId
         +string brandColor
         +string welcomeMessage
-        +string toneOfVoice
-        +boolean showPrivacyNotice
+        +updateBrandColor(color: string)
+        +updateWelcomeMessage(message: string)
+        +resetToDefault()
     }
+
     class Topic {
-        +string id
-        +string tenantId
+        +int topicId
+        +int tenantId
         +string title
-        +FaqArticle[] articles
+        +rename(title: string)
+        +publish()
     }
-    class FaqArticle {
-        +string id
-        +string topicId
+
+    class FAQArticle {
+        +int faqId
+        +int topicId
         +string question
         +string answer
-    }
-    class DialogueSession {
-        +string id
-        +string tenantId
-        +string customerName
-        +string customerEmail
-    }
-    class Ticket {
-        +string id
-        +string sessionId
-        +TicketStatus status
-        +string reason
-        +string assignedTo
-    }
-    class Message {
-        +string id
-        +string sessionId
-        +SenderType senderType
-        +string content
-    }
-    class User {
-        +string id
-        +string tenantId
-        +UserRole role
-        +string email
+        +editQuestion(text: string)
+        +editAnswer(text: string)
+        +publish()
     }
 
-    Tenant "1" --> "1" WidgetConfig
-    Tenant "1" --> "*" Topic
-    Topic "1" --> "*" FaqArticle
-    Tenant "1" --> "*" DialogueSession
-    DialogueSession "1" --> "0..1" Ticket
-    DialogueSession "1" --> "*" Message
-    Tenant "1" --> "*" User
+    class DialogueSession {
+        +int sessionId
+        +int tenantId
+        +string status
+        +datetime createdAt
+        +open()
+        +close()
+        +escalate()
+    }
+
+    class Message {
+        +int messageId
+        +int sessionId
+        +string content
+        +string senderType
+        +datetime sentAt
+        +send()
+        +edit()
+    }
+
+    class User {
+        +int userId
+        +int tenantId
+        +string name
+        +string email
+        +string role
+        +login()
+        +changeRole(role: string)
+        +deactivate()
+    }
+
+    class Ticket {
+        +int ticketId
+        +int tenantId
+        +string status
+        +int assignedTo
+        +assignTo(userId: int)
+        +changeStatus(status: string)
+        +close()
+    }
+
+    Tenant "1" --> "1" WidgetConfig : has
+    Tenant "1" --> "many" Topic : has
+    Tenant "1" --> "many" DialogueSession : has
+    Tenant "1" --> "many" User : has
+    
+    Topic "1" --> "many" FAQArticle : contains
+    DialogueSession "1" --> "many" Message : contains
+    User "1" --> "many" Ticket : handles
+    DialogueSession "1" --> "0..1" Ticket : has
 ```
 
 ---
 
-## Жизненный цикл тикета
+## Жизненный цикл обращения (Activity Diagram)
+
+Процесс обработки запроса: от открытия виджета до закрытия тикета.
 
 ```mermaid
-stateDiagram-v2
-    [*] --> new : эскалация из AI-чата
-    new --> in_progress : оператор забирает (claim)
-    in_progress --> waiting_client : оператор ответил, ждёт клиента
-    waiting_client --> in_progress : клиент ответил
-    in_progress --> closed : оператор закрывает
-    waiting_client --> closed : оператор закрывает
-    closed --> [*]
+flowchart TD
+    Start(( )) --> Widget[Виджет]
+    Widget --> ViewFAQ[Просмотр FAQ]
+    ViewFAQ --> ChatAI[Чат AI]
+    
+    ChatAI -- "AI ответ найден" --> AnsAI[Ответ AI]
+    ChatAI -- "недостающие данные" --> Clarify[Уточнение]
+    ChatAI -- "клиент позвал оператора" --> Escalate[Эскалация]
+    
+    Escalate --> TicketCreated[Тикет Создан]
+    TicketCreated --> InQueue[В Очереди]
+    InQueue -- "оператор взял" --> InProgress[В Работе]
+    InProgress -- "тикет решён" --> Closed[Закрыт]
+    Closed --> End(( ))
+    AnsAI --> End
+    Clarify --> End
 ```
 
 ---
 
-## Роли и взаимодействие
+## Карта прецедентов (Use Case Diagram)
+
+Взаимодействие ролей с функциональными модулями системы.
 
 ```mermaid
 flowchart LR
-    subgraph Roles
-        CL((Клиент))
-        OP((Оператор))
-        CA((Company\nAdmin))
-        PA((Platform\nAdmin))
-    end
+    Client[Клиент]
+    Operator[Оператор]
+    Supervisor[Супервизор]
+    AdminComp[Админ компании]
+    AdminPlat[Админ платформы]
 
-    CL -->|виджет| FAQ[Поиск по FAQ]
-    CL -->|виджет| CHAT[AI-чат]
-    CL -->|виджет| ESC[Запрос оператора]
+    UC_FAQ((Просмотр FAQ / Темы))
+    UC_Search((Поиск по FAQ))
+    UC_Wait((Статус ожидания))
+    UC_ChatAI((Чат с AI))
+    UC_Escalate((Эскалация на оператора))
+    UC_Tickets((Управление тикетами))
+    UC_Settings((Настройка виджета и KB))
+    UC_Global((Tenant / Метрики / Аудит))
 
-    OP -->|панель| QUEUE[Очередь тикетов]
-    OP -->|панель| REPLY[Ответ клиенту]
-    OP -->|панель| STATUS[Смена статуса]
+    Client --> UC_FAQ
+    Client --> UC_Search
+    Client --> UC_Wait
+    Client --> UC_ChatAI
+    Client --> UC_Escalate
+    
+    UC_ChatAI --> UC_Escalate
+    UC_Escalate --> UC_Tickets
 
-    CA -->|панель| KB[База знаний]
-    CA -->|панель| WC[Настройка виджета]
-
-    PA -->|панель| TEN[Управление тенантами]
-    PA -->|панель| MET[Метрики платформы]
+    Operator --> UC_Tickets
+    Supervisor --> UC_Tickets
+    AdminComp --> UC_Settings
+    AdminPlat --> UC_Global
 ```
-
----
-
-## Стек технологий
-
-| Слой | Технология |
-|---|---|
-| **Виджет (клиент)** | Preact + Vite (iframe embed) |
-| **Админ-панель** | Preact + Vite (SPA) |
-| **Backend** | Node.js + Express + TypeScript |
-| **Архитектура** | Clean Architecture (domain / application / infrastructure) |
-| **База данных** | Supabase (PostgreSQL) |
-| **AI** | LangChain + OpenAI GPT-4o-mini; локальный fallback без ключа |
-| **Авторизация** | JWT (access + refresh) + RBAC |
-| **Встраивание** | Динамический `embed.js` → iframe |
-| **Деплой** | Vercel (frontend) + Render / Railway (backend) |
 
 ---
 
