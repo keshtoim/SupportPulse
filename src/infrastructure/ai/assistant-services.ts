@@ -21,13 +21,25 @@ const includesOperatorRequest = (value: string): boolean => {
   return operatorRequestPatterns.some((pattern) => normalizedValue.includes(pattern));
 };
 
+// Exact match or prefix match (length ≥ 4) to handle Russian case endings:
+// "заказ" matches "заказа", "заказом"; "статус" matches "статусе" etc.
+const tokenMatches = (queryToken: string, articleTokens: Set<string>): boolean => {
+  if (articleTokens.has(queryToken)) return true;
+  if (queryToken.length < 4) return false;
+  for (const articleToken of articleTokens) {
+    if (articleToken.length < 4) continue;
+    if (articleToken.startsWith(queryToken) || queryToken.startsWith(articleToken)) return true;
+  }
+  return false;
+};
+
 const rankArticles = (question: string, articles: FaqArticle[]): RankedArticle[] => {
   const questionTokens = tokenize(question);
 
   return articles
     .map((article) => {
       const articleTokens = new Set(tokenize(`${article.question} ${article.answer}`));
-      const score = questionTokens.reduce((total, token) => total + (articleTokens.has(token) ? 1 : 0), 0);
+      const score = questionTokens.reduce((total, token) => total + (tokenMatches(token, articleTokens) ? 1 : 0), 0);
 
       return {
         article,
