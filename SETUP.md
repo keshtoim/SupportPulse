@@ -4,7 +4,6 @@
 
 - Node.js 20+
 - npm 9+
-- Supabase-проект (или запуск на in-memory адаптерах без внешней БД)
 
 ---
 
@@ -33,41 +32,57 @@ cp apps/widget-ui/.env.example apps/widget-ui/.env
 
 | Переменная | Описание |
 |---|---|
-| `PORT` | Порт backend (по умолчанию 3000) |
+| `PORT` | Порт backend (по умолчанию `3000`) |
 | `NODE_ENV` | `development` или `production` |
-| `JWT_SECRET` | Секрет для подписи access-токенов |
+| `FRONTEND_ORIGIN` | URL frontend-сервера в dev-режиме (`http://localhost:5173`) |
+| `JWT_ACCESS_SECRET` | Секрет для подписи access-токенов (мин. 32 символа) |
 | `JWT_REFRESH_SECRET` | Секрет для refresh-токенов |
-| `FRONTEND_ORIGIN` | URL frontend-сервера в dev-режиме (например, `http://localhost:5173`) |
+| `ACCESS_TOKEN_TTL` | Время жизни access-токена (например, `15m`) |
+| `REFRESH_TOKEN_TTL` | Время жизни refresh-токена (например, `7d`) |
 | `SUPABASE_URL` | URL Supabase-проекта |
 | `SUPABASE_SERVICE_ROLE_KEY` | Service role ключ (bypasses RLS) |
-| `OPENAI_API_KEY` | Ключ OpenAI (опционально — без него работает fallback по FAQ) |
+| `OPENAI_API_KEY` | Ключ OpenAI (опционально — без него fallback по FAQ) |
 | `OPENAI_MODEL` | Модель OpenAI (по умолчанию `gpt-4o-mini`) |
+
+Если `SUPABASE_URL` и `SUPABASE_SERVICE_ROLE_KEY` заполнены — backend автоматически использует Supabase. Без них запускается на in-memory адаптерах (данные теряются при перезапуске).
 
 ### Frontend `apps/widget-ui/.env`
 
 | Переменная | Описание |
 |---|---|
-| `VITE_API_BASE_URL` | URL backend API (например, `http://localhost:3000/api`) |
+| `VITE_API_BASE_URL` | URL backend API (в dev: `/api`, proxied Vite → `:3000`) |
+| `VITE_DEFAULT_TENANT_ID` | UUID тенанта по умолчанию |
+
+---
+
+## Supabase
+
+Схема и тестовые данные уже применены к проекту. Если разворачиваешь с нуля — выполни в Supabase Dashboard → SQL Editor:
+
+```
+supabase/migrations/001_init.sql   — схема БД
+supabase/seed.sql                  — тестовые данные (тенант, пользователи, FAQ)
+```
 
 ---
 
 ## Локальный запуск
 
-### Вариант 1 — один терминал (backend + frontend одновременно)
+### Вариант 1 — один терминал
 
 ```bash
 npm run dev:all
 ```
 
-Backend запустится на `:3000`, frontend — на `:5173`.
+Backend на `:3000`, frontend на `:5173`. В логах должно появиться `Persistence: Supabase`.
 
 ### Вариант 2 — раздельно
 
 ```bash
-# Терминал 1 — backend
+# Терминал 1
 npm run dev
 
-# Терминал 2 — frontend
+# Терминал 2
 npm run dev:frontend
 ```
 
@@ -75,13 +90,7 @@ npm run dev:frontend
 
 ## Тест встраивания виджета
 
-Открой `demo.html` в браузере (нужен запущенный backend + frontend):
-
-```
-demo.html   ← в корне проекта, имитирует сайт компании
-```
-
-Виджет загружается через:
+Открой `demo.html` в браузере при запущенном backend + frontend. Файл в корне проекта имитирует сайт компании и загружает виджет через:
 
 ```html
 <script src="http://localhost:3000/api/public/tenants/11111111-1111-1111-1111-111111111111/embed.js"></script>
@@ -89,38 +98,14 @@ demo.html   ← в корне проекта, имитирует сайт ком
 
 ---
 
-## Supabase
-
-SQL-миграции и тестовые данные:
-
-```
-supabase/migrations/001_init.sql   — схема БД
-supabase/seed.sql                  — тестовые данные
-```
-
-Применить через Supabase Dashboard → SQL Editor, или:
-
-```bash
-supabase db push
-```
-
-> Без Supabase система запускается на in-memory адаптерах — данные теряются при перезапуске.
-
----
-
 ## Production-сборка
 
 ```bash
-# Собрать backend + frontend в единый дистрибутив
 npm run build:fullstack
-
-# Запустить собранное приложение (backend раздаёт frontend по /)
 npm start
 ```
 
-После сборки:
-- `/` → frontend SPA
-- `/api` → backend REST API
+После сборки backend раздаёт frontend по `/`, API доступен по `/api`.
 
 ---
 
@@ -179,7 +164,7 @@ POST /api/operator/tickets/:ticketId/messages
 ### Company Admin
 
 ```
-GET /api/company/knowledge-base
+GET  /api/company/knowledge-base
 POST /api/company/faq
 PUT  /api/company/faq/:faqId
 GET  /api/company/widget-config
@@ -211,7 +196,9 @@ src/
     ai/                     AI/RAG-адаптер (LangChain + OpenAI)
     auth/                   JWT и password service
     http/                   роуты и middleware
-    persistence/            репозитории (Supabase / in-memory)
+    persistence/
+      supabase/             репозитории Supabase (основные)
+      in-memory/            fallback без БД
 supabase/
   migrations/               SQL-схема
   seed.sql                  тестовые данные
