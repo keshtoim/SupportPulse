@@ -121,13 +121,13 @@ html.embed-mode .widget-shell {
 }
 
 .brand-copy strong {
-  font-size: 42px;
-  letter-spacing: -0.5px;
+  font-size: 16px;
+  letter-spacing: -0.2px;
 }
 
 .brand-copy span {
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   color: #6a7382;
 }
 
@@ -140,9 +140,9 @@ html.embed-mode .widget-shell {
 }
 
 .hero-banner {
-  min-height: 165px;
-  border-radius: 28px;
-  padding: 22px;
+  min-height: 110px;
+  border-radius: 20px;
+  padding: 16px 18px;
   background: linear-gradient(160deg, #4a8fff, #b88bff);
   color: #fff;
   display: grid;
@@ -151,9 +151,9 @@ html.embed-mode .widget-shell {
 
 .hero-banner h1 {
   margin: 0;
-  font-size: 60px;
+  font-size: 28px;
   font-weight: 800;
-  letter-spacing: -1px;
+  letter-spacing: -0.5px;
 }
 
 .card {
@@ -165,14 +165,14 @@ html.embed-mode .widget-shell {
 
 .intro-card {
   display: grid;
-  grid-template-columns: 118px 1fr;
-  gap: 14px;
+  grid-template-columns: 72px 1fr;
+  gap: 12px;
 }
 
 .intro-icon {
-  width: 112px;
-  height: 112px;
-  border-radius: 18px;
+  width: 68px;
+  height: 68px;
+  border-radius: 14px;
 }
 
 .intro-card p {
