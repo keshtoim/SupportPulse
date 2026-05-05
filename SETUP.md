@@ -1,5 +1,35 @@
 # SupportPulse — Запуск и настройка
 
+## Быстрый старт
+
+```bash
+# 1. Клонировать репозиторий
+git clone https://github.com/keshtoim/SupportPulse.git
+cd SupportPulse
+
+# 2. Установить зависимости
+npm install
+npm --prefix apps/widget-ui install
+
+# 3. Создать файлы окружения
+cp .env.example .env
+cp apps/widget-ui/.env.example apps/widget-ui/.env
+
+# 4. Заполнить .env:
+#    SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY — из Supabase Dashboard → Settings → API
+#    JWT_ACCESS_SECRET, JWT_REFRESH_SECRET — любые случайные строки (мин. 32 символа)
+#    OPENAI_API_KEY — опционально
+
+# 5. Запустить
+npm run dev:all
+```
+
+В логах должно появиться `Persistence: Supabase` — значит БД подключена.
+
+---
+
+## Подробное описание
+
 ## Требования
 
 - Node.js 20+
