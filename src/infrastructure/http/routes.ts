@@ -126,10 +126,13 @@ export const createApiRouter = (context: ApplicationContext) => {
     asyncHandler(async (request, response) => {
       const tenantId = getSingleValue(request.params.tenantId, "tenantId");
       const widget = await context.widgetService.getWidget(tenantId);
-      const baseUrl = `${request.protocol}://${request.get("host")}`;
+      const isDev = context.env.nodeEnv === "development";
+      const baseUrl = isDev
+        ? context.env.frontendOrigin
+        : `${request.protocol}://${request.get("host")}`;
       const script = generateEmbedScript(tenantId, baseUrl, widget.widgetConfig.brandColor);
       response.setHeader("Content-Type", "application/javascript; charset=utf-8");
-      response.setHeader("Cache-Control", "public, max-age=3600");
+      response.setHeader("Cache-Control", isDev ? "no-store" : "public, max-age=3600");
       response.send(script);
     })
   );
