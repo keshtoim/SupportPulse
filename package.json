@@ -6,6 +6,7 @@
   "main": "dist/src/main.js",
   "scripts": {
     "dev": "tsx watch src/main.ts",
+    "dev:all": "concurrently -n backend,frontend -c cyan,magenta \"npm run dev\" \"npm run dev:frontend\"",
     "dev:frontend": "npm --prefix apps/widget-ui run dev",
     "build": "tsc -p tsconfig.json",
     "build:frontend": "npm --prefix apps/widget-ui run build",
@@ -52,6 +53,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^25.6.0",
     "@types/supertest": "^7.2.0",
+    "concurrently": "^9.2.1",
     "supertest": "^7.2.2",
     "tsx": "^4.21.0",
     "typescript": "^6.0.3",
