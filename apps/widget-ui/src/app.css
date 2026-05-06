@@ -376,37 +376,37 @@ html.embed-mode .widget-shell {
   border: none;
   border-radius: 10px;
   background: #f3f1ff;
-  padding: 10px 8px;
-  min-height: 76px;
+  padding: 12px 8px;
+  min-height: 96px;
   display: grid;
   justify-items: center;
   align-content: center;
-  gap: 6px;
-  font-size: 12px;
+  gap: 8px;
+  font-size: 13px;
   font-weight: 700;
   cursor: pointer;
 }
 
 .dashboard-wide-tile {
   width: 100%;
-  min-height: 52px;
-  grid-template-columns: 40px 1fr;
+  min-height: 56px;
+  grid-template-columns: 44px 1fr;
   justify-items: start;
   align-items: center;
 }
 
 .tile-icon {
-  width: 34px;
-  height: 34px;
-  border-radius: 7px;
+  width: 40px;
+  height: 40px;
+  border-radius: 9px;
   border: 2px solid #1d2430;
   display: grid;
   place-items: center;
 }
 
 .tile-icon svg {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
 }
 
 .admin-nav {
@@ -481,7 +481,12 @@ html.embed-mode .widget-shell {
 
 .admin-page h2 {
   margin: 0 0 14px;
-  font-size: 44px;
+  font-size: 28px;
+}
+
+.auth-page {
+  max-width: 520px;
+  margin: 40px auto 0;
 }
 
 .knowledge-header {
@@ -515,9 +520,9 @@ html.embed-mode .widget-shell {
 .knowledge-card {
   background: #fff;
   border-radius: 14px;
-  padding: 10px;
+  padding: 14px;
   display: grid;
-  grid-template-columns: 180px 1fr;
+  grid-template-columns: 48px 1fr;
   gap: 14px;
   align-items: start;
   border: 1px solid #d8dbe4;
@@ -530,13 +535,13 @@ html.embed-mode .widget-shell {
 
 .knowledge-card h3 {
   margin: 0 0 6px;
-  font-size: 24px;
+  font-size: 16px;
 }
 
 .knowledge-card p {
   margin: 0 0 10px;
-  font-size: 18px;
-  line-height: 1.2;
+  font-size: 14px;
+  line-height: 1.4;
 }
 
 .primary-button.compact {
@@ -746,9 +751,6 @@ html.embed-mode .widget-shell {
 
 /* Tablet + mobile: shared content tweaks */
 @media (max-width: 899px) {
-  .admin-page h2 {
-    font-size: 32px;
-  }
 }
 
 /* Tablet: icon rail */
@@ -1092,8 +1094,8 @@ html.embed-mode .widget-shell {
 }
 
 .stat-card span {
-  font-size: 24px;
-  font-weight: 800;
+  font-size: 18px;
+  font-weight: 700;
 }
 
 .ticket-layout {

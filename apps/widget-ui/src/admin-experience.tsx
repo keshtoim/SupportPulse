@@ -457,7 +457,7 @@ export function AdminExperience({
                   </article>
                   <article class="card stat-card">
                     <strong>Тенант</strong>
-                    <span>{auth.user.tenantId ?? 'platform'}</span>
+                    <span>{auth.user.tenantId ? auth.user.tenantId.slice(0, 8) : 'platform'}</span>
                   </article>
                 </section>
 
