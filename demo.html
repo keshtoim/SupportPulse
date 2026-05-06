@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Acme College Services — тест виджета</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f4f6fb;
+      color: #1a2132;
+    }
+
+    header {
+      background: #fff;
+      border-bottom: 1px solid #e3e7f0;
+      padding: 0 32px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo { font-size: 20px; font-weight: 800; color: #1F7AE0; }
+    .logo span { color: #1a2132; }
+
+    nav { display: flex; gap: 28px; }
+    nav a {
+      text-decoration: none;
+      color: #4a5568;
+      font-size: 15px;
+      font-weight: 500;
+    }
+    nav a:hover { color: #1F7AE0; }
+
+    .hero {
+      max-width: 860px;
+      margin: 80px auto 0;
+      padding: 0 24px;
+      text-align: center;
+    }
+
+    .hero h1 {
+      font-size: 52px;
+      font-weight: 800;
+      line-height: 1.15;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 em {
+      font-style: normal;
+      color: #1F7AE0;
+    }
+
+    .hero p {
+      font-size: 18px;
+      color: #5a6480;
+      line-height: 1.6;
+      max-width: 560px;
+      margin: 0 auto 36px;
+    }
+
+    .cta {
+      display: inline-block;
+      background: #1F7AE0;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 700;
+      padding: 14px 36px;
+      border-radius: 12px;
+      text-decoration: none;
+      transition: background 0.15s;
+    }
+    .cta:hover { background: #1560b8; }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      max-width: 860px;
+      margin: 64px auto;
+      padding: 0 24px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 28px 24px;
+      box-shadow: 0 2px 12px rgba(25, 42, 73, 0.08);
+    }
+
+    .card-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: #e8f0fd;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      font-size: 22px;
+    }
+
+    .card h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+    .card p  { font-size: 14px; color: #6b7a99; line-height: 1.5; }
+
+    footer {
+      text-align: center;
+      padding: 40px 24px;
+      font-size: 13px;
+      color: #9aa3b8;
+      border-top: 1px solid #e3e7f0;
+    }
+
+    @media (max-width: 640px) {
+      .hero h1 { font-size: 34px; }
+      .cards { grid-template-columns: 1fr; }
+      nav { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">Acme<span>College</span></div>
+    <nav>
+      <a href="#">Курсы</a>
+      <a href="#">О нас</a>
+      <a href="#">Цены</a>
+      <a href="#">Контакты</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <h1>Онлайн-образование<br>нового <em>поколения</em></h1>
+    <p>Учитесь в удобное время, получайте сертификаты и поддержку преподавателей в любой момент.</p>
+    <a class="cta" href="#">Начать бесплатно</a>
+  </section>
+
+  <section class="cards">
+    <div class="card">
+      <div class="card-icon">📚</div>
+      <h3>500+ курсов</h3>
+      <p>От программирования до дизайна — широкий выбор направлений для любого уровня.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">🎓</div>
+      <h3>Сертификаты</h3>
+      <p>Документ об окончании, который признают ведущие работодатели рынка.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">💬</div>
+      <h3>Поддержка 24/7</h3>
+      <p>Наш AI-помощник и операторы готовы ответить на любой вопрос в любое время.</p>
+    </div>
+  </section>
+
+  <footer>
+    &copy; 2025 Acme College Services. Все права защищены.
+  </footer>
+
+  <!-- SupportPulse widget — загружается с локального бэкенда -->
+  <script src="http://localhost:3000/api/public/tenants/11111111-1111-1111-1111-111111111111/embed.js"></script>
+
+</body>
+</html>

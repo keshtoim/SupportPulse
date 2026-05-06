@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'preact/hooks'
 import {
   apiRequest,
-  DEFAULT_TENANT_ID,
   formatDateTime,
   senderLabel,
   statusLabel,
@@ -27,11 +26,13 @@ const buildAssistantFallback = (content: string): MessageRecord => ({
 
 export function WidgetExperience({
   active,
+  tenantId,
   screen,
   onScreenChange,
   onOpenAdmin,
 }: {
   active: boolean
+  tenantId: string
   screen: WidgetScreen
   onScreenChange: (screen: WidgetScreen) => void
   onOpenAdmin: (screen: AdminScreen) => void
@@ -59,7 +60,7 @@ export function WidgetExperience({
       try {
         setLoadingWidget(true)
         setWidgetError(null)
-        const payload = await apiRequest<WidgetPayload>(`/public/tenants/${DEFAULT_TENANT_ID}/widget`)
+        const payload = await apiRequest<WidgetPayload>(`/public/tenants/${tenantId}/widget`)
 
         if (!cancelled) {
           setWidgetData(payload)
@@ -84,7 +85,7 @@ export function WidgetExperience({
 
   const refreshSession = async (nextSessionId: string) => {
     const payload = await apiRequest<SessionMessagesResponse>(
-      `/public/tenants/${DEFAULT_TENANT_ID}/dialogue-sessions/${nextSessionId}/messages`,
+      `/public/tenants/${tenantId}/dialogue-sessions/${nextSessionId}/messages`,
     )
 
     setSession(payload.session)
@@ -92,12 +93,19 @@ export function WidgetExperience({
     setMessages(payload.messages)
   }
 
+  // Polling: клиент видит ответы оператора без F5
+  useEffect(() => {
+    if (!sessionId || screen !== 'chat') return
+    const id = setInterval(() => void refreshSession(sessionId).catch(() => {}), 5000)
+    return () => clearInterval(id)
+  }, [sessionId, screen])
+
   const ensureSession = async (): Promise<string> => {
     if (sessionId) {
       return sessionId
     }
 
-    const created = await apiRequest<SessionRecord>(`/public/tenants/${DEFAULT_TENANT_ID}/dialogue-sessions`, {
+    const created = await apiRequest<SessionRecord>(`/public/tenants/${tenantId}/dialogue-sessions`, {
       method: 'POST',
       body: JSON.stringify({
         customerName: customerName.trim() || undefined,
@@ -122,7 +130,7 @@ export function WidgetExperience({
       setSearching(true)
       setWidgetError(null)
       const result = await apiRequest<FaqArticle[]>(
-        `/public/tenants/${DEFAULT_TENANT_ID}/faq/search?q=${encodeURIComponent(searchQuery.trim())}`,
+        `/public/tenants/${tenantId}/faq/search?q=${encodeURIComponent(searchQuery.trim())}`,
       )
       setSearchResults(result)
     } catch (error) {
@@ -144,7 +152,7 @@ export function WidgetExperience({
       setChatError(null)
       const nextSessionId = await ensureSession()
       const payload = await apiRequest<PostMessageResponse>(
-        `/public/tenants/${DEFAULT_TENANT_ID}/dialogue-sessions/${nextSessionId}/messages`,
+        `/public/tenants/${tenantId}/dialogue-sessions/${nextSessionId}/messages`,
         {
           method: 'POST',
           body: JSON.stringify({
@@ -154,8 +162,7 @@ export function WidgetExperience({
       )
 
       setDraft('')
-      setSessionId(payload.session.id)
-      await refreshSession(payload.session.id)
+      applyPayload(payload)
     } catch (error) {
       setChatError((error as Error).message)
     } finally {
@@ -169,7 +176,7 @@ export function WidgetExperience({
       setChatError(null)
       const nextSessionId = await ensureSession()
       const payload = await apiRequest<PostMessageResponse>(
-        `/public/tenants/${DEFAULT_TENANT_ID}/dialogue-sessions/${nextSessionId}/escalate`,
+        `/public/tenants/${tenantId}/dialogue-sessions/${nextSessionId}/escalate`,
         {
           method: 'POST',
           body: JSON.stringify({
@@ -180,13 +187,25 @@ export function WidgetExperience({
         },
       )
 
-      setSessionId(payload.session.id)
-      await refreshSession(payload.session.id)
+      applyPayload(payload)
       onScreenChange('chat')
     } catch (error) {
       setChatError((error as Error).message)
     } finally {
       setSending(false)
+    }
+  }
+
+  const applyPayload = (payload: PostMessageResponse) => {
+    setSessionId(payload.session.id)
+    setSession(payload.session)
+    if (payload.ticket !== undefined) setTicket(payload.ticket ?? null)
+    const incoming = [payload.clientMessage, payload.reply].filter(Boolean) as import('./api').MessageRecord[]
+    if (incoming.length > 0) {
+      setMessages(prev => {
+        const existingIds = new Set(prev.map(m => m.id))
+        return [...prev, ...incoming.filter(m => !existingIds.has(m.id))]
+      })
     }
   }
 
@@ -379,7 +398,11 @@ export function WidgetExperience({
               type="button"
               onClick={() => onScreenChange('home')}
             >
-              <span class="tab-icon">⌂</span>
+              <span class="tab-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 12L12 3l9 9" /><path d="M9 21V12h6v9" /><path d="M3 12v9h18v-9" />
+                </svg>
+              </span>
               Дом
             </button>
             <button
@@ -387,7 +410,11 @@ export function WidgetExperience({
               type="button"
               onClick={() => onScreenChange('chat')}
             >
-              <span class="tab-icon">💬</span>
+              <span class="tab-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
+              </span>
               Чат
             </button>
           </footer>

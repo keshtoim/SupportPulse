@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { ApplicationContext } from "../../app/application-context";
 import { AppError } from "../../domain/model";
 import { createAuthMiddleware, getRequiredAuthUser, requireRoles } from "./middlewares/auth-middleware";
+import { generateEmbedScript } from "./embed-script";
 
 const asyncHandler =
   (handler: (request: Request, response: Response) => Promise<void>): RequestHandler =>
@@ -117,6 +118,22 @@ export const createApiRouter = (context: ApplicationContext) => {
     asyncHandler(async (request, response) => {
       const result = await context.widgetService.getWidget(getSingleValue(request.params.tenantId, "tenantId"));
       response.json(result);
+    })
+  );
+
+  router.get(
+    "/public/tenants/:tenantId/embed.js",
+    asyncHandler(async (request, response) => {
+      const tenantId = getSingleValue(request.params.tenantId, "tenantId");
+      const widget = await context.widgetService.getWidget(tenantId);
+      const isDev = context.env.nodeEnv === "development";
+      const baseUrl = isDev
+        ? context.env.frontendOrigin
+        : `${request.protocol}://${request.get("host")}`;
+      const script = generateEmbedScript(tenantId, baseUrl, widget.widgetConfig.brandColor);
+      response.setHeader("Content-Type", "application/javascript; charset=utf-8");
+      response.setHeader("Cache-Control", isDev ? "no-store" : "public, max-age=3600");
+      response.send(script);
     })
   );
 

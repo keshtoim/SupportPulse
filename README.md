@@ -1,181 +1,336 @@
-# SupportPulse Fullstack
+# SupportPulse
 
-Fullstack-проект для колледжного приложения SupportPulse: AI-виджет поддержки, операторская панель, база знаний, эскалация на оператора и backend API.
+> AI-виджет поддержки с эскалацией на оператора — мультитенантная SaaS-платформа
 
-## Что уже реализовано
+## Главная идея
 
-- `Express + TypeScript` backend с разделением на `domain / application / infrastructure`.
-- `Preact + Vite` frontend в `apps/widget-ui`.
-- JWT-авторизация с `access + refresh` токенами.
-- Middleware проверки ролей и tenant isolation.
-- Публичные API для виджета: темы, FAQ, поиск, старт сессии, сообщения, эскалация.
-- Публичный API для получения истории сообщений сессии.
-- API оператора: очередь тикетов, принятие тикета, смена статуса, ответы в диалоге.
-- API компании: управление FAQ и конфигурацией виджета.
-- API платформы: создание и блокировка тенантов, базовые метрики.
-- Интеграция frontend c backend:
-  виджет отправляет сообщения в API;
-  админ-панель выполняет логин, получает тикеты и отвечает клиенту;
-  backend умеет раздавать собранный frontend как единое приложение.
-- AI-слой через FAQ/RAG-подход:
-  если `OPENAI_API_KEY` указан, используется `LangChain + OpenAI`;
-  если ключа нет, работает безопасный fallback по локальной базе FAQ.
-- SQL-схема и сиды для будущего переноса в `Supabase`.
+Компания встраивает на сайт один тег `<script>` и получает полноценный канал поддержки:
 
-## Архитектурный подход
+- клиент задаёт вопрос в виджете;
+- AI отвечает мгновенно, опираясь на базу знаний (FAQ);
+- если ответа нет или клиент просит оператора — создаётся тикет;
+- оператор забирает тикет, переписывается с клиентом прямо в той же сессии;
+- все данные изолированы по тенанту; платформа обслуживает сколько угодно компаний.
 
-Проект собран по принципам `SOLID`:
+---
 
-- доменные модели изолированы от HTTP и внешних адаптеров;
-- бизнес-логика вынесена в application services;
-- репозитории и сервисы подключаются через интерфейсы;
-- текущий runtime использует `in-memory` адаптеры, поэтому систему можно запустить без внешней БД;
-- подготовлены SQL-артефакты для следующего шага интеграции с `Supabase`.
+## MVP-сценарий
 
-## Структура проекта
-
-```text
-src/
-  app/                      композиция приложения
-  config/                   env-конфиг
-  domain/                   сущности и ошибки
-  application/
-    ports/                  интерфейсы репозиториев и сервисов
-    use-cases/              бизнес-логика
-  infrastructure/
-    ai/                     AI/RAG-адаптер
-    auth/                   JWT и password service
-    http/                   роуты и middleware
-    persistence/in-memory/  временное хранилище
-supabase/
-  migrations/               SQL-схема
-  seed.sql                  тестовые данные
-apps/widget-ui/
-  src/                      frontend виджета и панели
-test/
-  supportpulse-api.test.ts
+```
+1. Клиент открывает сайт компании
+       ↓
+2. Загружается виджет (embed.js → iframe)
+       ↓
+3. Клиент вводит вопрос
+       ↓
+4. AI ищет ответ в базе знаний (FAQ RAG)
+       ↓
+5a. Найден ответ → AI отвечает клиенту
+5b. Ответ не найден / клиент просит оператора → создаётся тикет
+       ↓
+6. Оператор видит тикет в очереди, забирает его (claim)
+       ↓
+7. Оператор переписывается с клиентом через панель
+       ↓
+8. Оператор закрывает тикет
 ```
 
-## Локальный запуск
+---
 
-1. Установить backend-зависимости:
+## Ключевые возможности
 
-```bash
-npm install
+| Область | Что умеет |
+|---|---|
+| **Виджет (клиент)** | Приветствие, FAQ-поиск, AI-чат, эскалация на оператора |
+| **AI / база знаний** | FAQ RAG с токенизацией и префиксным поиском; LangChain + GPT-4o-mini при наличии ключа |
+| **Эскалация / тикеты** | Создание тикета, статусная машина, история сообщений |
+| **Операторская панель** | Очередь тикетов, принятие (claim), ответы, смена статуса |
+| **Панель компании** | Управление темами и статьями FAQ, настройка виджета (цвет, тон, privacy) |
+| **Панель платформы** | Создание тенантов, блокировка, базовые метрики |
+| **Встраивание** | `GET /api/public/tenants/:id/embed.js` — один тег `<script>` |
+| **Мультитенантность** | Каждая компания — изолированный тенант; данные не пересекаются |
+
+---
+
+## Архитектура системы
+
+Система состоит из клиентских интерфейсов, единого бэкенда, AI-подсистемы и изолированного хранилища данных.
+
+```mermaid
+flowchart TD
+    subgraph Users [" "]
+        direction LR
+        AdminC["Администратор компании"]
+        Client["Клиент"]
+        Operator["Оператор"]
+        AdminP["Администратор платформы"]
+    end
+
+    subgraph Interfaces ["Клиентские интерфейсы"]
+        direction LR
+        AdminCompanyUI["Админка компании"]
+        WidgetUI["Виджет поддержки"]
+        OperatorUI["Админка оператора"]
+        AdminPlatformUI["Админка платформы"]
+    end
+
+    AdminC --> AdminCompanyUI
+    Client --> WidgetUI
+    Operator --> OperatorUI
+    AdminP --> AdminPlatformUI
+
+    subgraph Backend ["Серверная часть"]
+        Core["Backend платформы"]
+    end
+
+    AdminCompanyUI --> Core
+    WidgetUI --> Core
+    OperatorUI --> Core
+    AdminPlatformUI --> Core
+
+    subgraph AI ["Подсистема базы знаний и AI"]
+        KB["База знаний и AI-агент"]
+    end
+
+    subgraph DB ["Хранение данных"]
+        Storage[(Хранилище данных системы)]
+    end
+
+    Core <--> KB
+    Core <--> Storage
 ```
 
-2. Установить frontend-зависимости:
+---
 
-```bash
-npm --prefix apps/widget-ui install
+## Схема базы данных (ER Diagram)
+
+Основа системы — строгая изоляция данных по компаниям-клиентам (tenant_id).
+
+```mermaid
+erDiagram
+    TENANTS ||--o{ TOPICS : "1:N - каждый Tenant имеет темы"
+    TENANTS ||--o{ FAQ_ARTICLES : "1:N - каждый Tenant владеет FAQ"
+    TENANTS ||--o{ USERS : "1:N - каждый Tenant имеет пользователей"
+    TENANTS ||--o{ DIALOGUE_SESSIONS : "1:N - каждый Tenant имеет сессии"
+
+    TENANTS {
+        uuid tenant_id PK
+        string name
+    }
+
+    TOPICS {
+        uuid topic_id PK
+        uuid tenant_id FK
+        string title
+    }
+
+    FAQ_ARTICLES {
+        uuid faq_id PK
+        uuid topic_id FK
+        uuid tenant_id FK
+        string question
+        text answer
+    }
+    
+    TOPICS ||--o{ FAQ_ARTICLES : "1:N - каждая тема содержит FAQ"
+
+    USERS {
+        uuid user_id PK
+        uuid tenant_id FK
+        string role
+    }
+
+    TICKETS {
+        uuid ticket_id PK
+        uuid tenant_id FK
+        uuid session_id FK
+        string status
+        uuid assigned_user_id FK
+    }
+
+    USERS ||--o{ TICKETS : "1:N - пользователь может быть назначен на тикеты"
+
+    DIALOGUE_SESSIONS {
+        uuid session_id PK
+        uuid tenant_id FK
+        string state
+    }
+    
+    DIALOGUE_SESSIONS ||--o| TICKETS : "0..1 - сессия может создавать тикет"
+
+    MESSAGES {
+        uuid message_id PK
+        uuid session_id FK
+        uuid ticket_id FK
+        text content
+        string sender_type
+    }
+
+    DIALOGUE_SESSIONS ||--o{ MESSAGES : "1:N - каждая сессия содержит сообщения"
 ```
 
-3. Создать `.env` на основе `.env.example`.
+---
 
-4. При необходимости создать `apps/widget-ui/.env` на основе `apps/widget-ui/.env.example`.
+## Доменная модель (Class Diagram)
 
-5. Запустить backend:
+Структура основных сущностей приложения и их базовые методы.
 
-```bash
-npm run dev
+```mermaid
+classDiagram
+    class Tenant {
+        +int tenantId
+        +string name
+        +bool isBlocked
+        +rename(newName: string)
+        +block()
+        +unblock()
+    }
+
+    class WidgetConfig {
+        +int configId
+        +int tenantId
+        +string brandColor
+        +string welcomeMessage
+        +updateBrandColor(color: string)
+        +updateWelcomeMessage(message: string)
+        +resetToDefault()
+    }
+
+    class Topic {
+        +int topicId
+        +int tenantId
+        +string title
+        +rename(title: string)
+        +publish()
+    }
+
+    class FAQArticle {
+        +int faqId
+        +int topicId
+        +string question
+        +string answer
+        +editQuestion(text: string)
+        +editAnswer(text: string)
+        +publish()
+    }
+
+    class DialogueSession {
+        +int sessionId
+        +int tenantId
+        +string status
+        +datetime createdAt
+        +open()
+        +close()
+        +escalate()
+    }
+
+    class Message {
+        +int messageId
+        +int sessionId
+        +string content
+        +string senderType
+        +datetime sentAt
+        +send()
+        +edit()
+    }
+
+    class User {
+        +int userId
+        +int tenantId
+        +string name
+        +string email
+        +string role
+        +login()
+        +changeRole(role: string)
+        +deactivate()
+    }
+
+    class Ticket {
+        +int ticketId
+        +int tenantId
+        +string status
+        +int assignedTo
+        +assignTo(userId: int)
+        +changeStatus(status: string)
+        +close()
+    }
+
+    Tenant "1" --> "1" WidgetConfig : has
+    Tenant "1" --> "many" Topic : has
+    Tenant "1" --> "many" DialogueSession : has
+    Tenant "1" --> "many" User : has
+    
+    Topic "1" --> "many" FAQArticle : contains
+    DialogueSession "1" --> "many" Message : contains
+    User "1" --> "many" Ticket : handles
+    DialogueSession "1" --> "0..1" Ticket : has
 ```
 
-6. В отдельном терминале запустить frontend:
+---
 
-```bash
-npm run dev:frontend
+## Жизненный цикл обращения (Activity Diagram)
+
+Процесс обработки запроса: от открытия виджета до закрытия тикета.
+
+```mermaid
+flowchart TD
+    Start(( )) --> Widget[Виджет]
+    Widget --> ViewFAQ[Просмотр FAQ]
+    ViewFAQ --> ChatAI[Чат AI]
+    
+    ChatAI -- "AI ответ найден" --> AnsAI[Ответ AI]
+    ChatAI -- "недостающие данные" --> Clarify[Уточнение]
+    ChatAI -- "клиент позвал оператора" --> Escalate[Эскалация]
+    
+    Escalate --> TicketCreated[Тикет Создан]
+    TicketCreated --> InQueue[В Очереди]
+    InQueue -- "оператор взял" --> InProgress[В Работе]
+    InProgress -- "тикет решён" --> Closed[Закрыт]
+    Closed --> End(( ))
+    AnsAI --> End
+    Clarify --> End
 ```
 
-7. Собрать fullstack production:
+---
 
-```bash
-npm run build:fullstack
+## Карта прецедентов (Use Case Diagram)
+
+Взаимодействие ролей с функциональными модулями системы.
+
+```mermaid
+flowchart LR
+    Client[Клиент]
+    Operator[Оператор]
+    Supervisor[Супервизор]
+    AdminComp[Админ компании]
+    AdminPlat[Админ платформы]
+
+    UC_FAQ((Просмотр FAQ / Темы))
+    UC_Search((Поиск по FAQ))
+    UC_Wait((Статус ожидания))
+    UC_ChatAI((Чат с AI))
+    UC_Escalate((Эскалация на оператора))
+    UC_Tickets((Управление тикетами))
+    UC_Settings((Настройка виджета и KB))
+    UC_Global((Tenant / Метрики / Аудит))
+
+    Client --> UC_FAQ
+    Client --> UC_Search
+    Client --> UC_Wait
+    Client --> UC_ChatAI
+    Client --> UC_Escalate
+    
+    UC_ChatAI --> UC_Escalate
+    UC_Escalate --> UC_Tickets
+
+    Operator --> UC_Tickets
+    Supervisor --> UC_Tickets
+    AdminComp --> UC_Settings
+    AdminPlat --> UC_Global
 ```
 
-8. Прогнать backend-тесты:
+---
 
-```bash
-npm test
-```
+## Быстрый старт
 
-9. Запустить собранное приложение единым сервером:
-
-```bash
-npm start
-```
-
-После `npm run build:fullstack` backend раздаёт frontend по `/`, а API остаётся доступным по `/api`.
-
-## Демо-аккаунты
-
-Все тестовые аккаунты используют пароль `Admin123!`.
-
-- `platform@supportpulse.dev` — администратор платформы
-- `admin@acme.dev` — администратор компании
-- `supervisor@acme.dev` — супервизор
-- `operator@acme.dev` — оператор
-
-## Основные эндпоинты
-
-### Auth
-
-- `POST /api/auth/login`
-- `POST /api/auth/refresh`
-
-### Public Widget
-
-- `GET /api/public/tenants/:tenantId/widget`
-- `GET /api/public/tenants/:tenantId/faq/search?q=...`
-- `POST /api/public/tenants/:tenantId/dialogue-sessions`
-- `GET /api/public/tenants/:tenantId/dialogue-sessions/:sessionId/messages`
-- `POST /api/public/tenants/:tenantId/dialogue-sessions/:sessionId/messages`
-- `POST /api/public/tenants/:tenantId/dialogue-sessions/:sessionId/escalate`
-
-### Operator
-
-- `GET /api/operator/tickets`
-- `GET /api/operator/tickets/:ticketId/messages`
-- `POST /api/operator/tickets/:ticketId/claim`
-- `POST /api/operator/tickets/:ticketId/status`
-- `POST /api/operator/tickets/:ticketId/messages`
-
-### Company Admin
-
-- `GET /api/company/knowledge-base`
-- `POST /api/company/faq`
-- `PUT /api/company/faq/:faqId`
-- `GET /api/company/widget-config`
-- `PUT /api/company/widget-config`
-
-### Platform Admin
-
-- `GET /api/platform/tenants`
-- `POST /api/platform/tenants`
-- `POST /api/platform/tenants/:tenantId/block`
-- `GET /api/platform/metrics`
-
-## Supabase
-
-SQL-файлы лежат в:
-
-- `supabase/migrations/001_init.sql`
-- `supabase/seed.sql`
-
-Текущий код пока не пишет в `Supabase` напрямую. Следующий инкремент логично посвятить:
-
-- переносу репозиториев с `in-memory` на `Supabase`;
-- подключению `Supabase Auth` вместо локальной модели пользователей;
-- добавлению realtime-обновлений очереди и чата;
-- загрузке файлов и индексации базы знаний;
-- полноценной RAG-цепочке на embeddings.
-
-## Что проверено
-
-- `npm run build`
-- `npm run build:frontend`
-- `npm run build:fullstack`
-- `npm test`
-- живой запуск backend на локальном порту с проверкой:
-  `/` отдаёт собранный frontend;
-  `/api/health` отвечает;
-  JS-ассеты frontend доступны через backend.
+Смотри [SETUP.md](SETUP.md) — там пошаговая инструкция по локальному запуску, переменным окружения, демо-аккаунтам и API.

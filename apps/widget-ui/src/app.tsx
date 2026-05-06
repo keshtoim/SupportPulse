@@ -3,8 +3,42 @@ import './app.css'
 import { AdminExperience } from './admin-experience'
 import { WidgetExperience } from './widget-experience'
 import type { AdminScreen, AppMode, WidgetScreen } from './api'
+import { DEFAULT_TENANT_ID } from './api'
+
+function getEmbedParams() {
+  const params = new URLSearchParams(window.location.search)
+  return {
+    isEmbed: params.get('embed') === '1',
+    tenantId: params.get('tenantId') ?? DEFAULT_TENANT_ID,
+  }
+}
 
 export function App() {
+  const { isEmbed, tenantId } = getEmbedParams()
+
+  if (isEmbed) {
+    document.documentElement.classList.add('embed-mode')
+    return <EmbedApp tenantId={tenantId} />
+  }
+
+  return <NormalApp tenantId={tenantId} />
+}
+
+function EmbedApp({ tenantId }: { tenantId: string }) {
+  const [screen, setScreen] = useState<WidgetScreen>('home')
+
+  return (
+    <WidgetExperience
+      active
+      tenantId={tenantId}
+      screen={screen}
+      onScreenChange={setScreen}
+      onOpenAdmin={() => {}}
+    />
+  )
+}
+
+function NormalApp({ tenantId }: { tenantId: string }) {
   const [mode, setMode] = useState<AppMode>('widget')
   const [widgetScreen, setWidgetScreen] = useState<WidgetScreen>('home')
   const [adminScreen, setAdminScreen] = useState<AdminScreen>('dashboard')
@@ -30,6 +64,7 @@ export function App() {
 
       <WidgetExperience
         active={mode === 'widget'}
+        tenantId={tenantId}
         screen={widgetScreen}
         onScreenChange={setWidgetScreen}
         onOpenAdmin={(screen) => {

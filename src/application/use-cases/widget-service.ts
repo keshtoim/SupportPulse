@@ -125,10 +125,20 @@ export class WidgetSupportApplicationService {
     });
 
     if (session.state !== "ai_active" && existingTicket) {
+      const queuedReply = await this.dependencies.messageRepository.create({
+        id: this.dependencies.idGenerator.next("msg"),
+        sessionId: session.id,
+        ticketId: existingTicket.id,
+        senderType: "system",
+        content: "Ваше сообщение передано оператору. Ожидайте ответа в этом чате.",
+        createdAt: this.dependencies.clock.now().toISOString()
+      });
+
       return {
         decision: "queued_to_operator",
         session,
         ticket: existingTicket,
+        reply: queuedReply,
         clientMessage
       };
     }

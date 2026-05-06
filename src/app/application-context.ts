@@ -8,15 +8,22 @@ import type { AppEnv } from "../config/env";
 import { FaqRagAnswerService } from "../infrastructure/ai/assistant-services";
 import { BcryptPasswordService, JwtTokenService } from "../infrastructure/auth/security";
 import { SystemClock, UuidIdGenerator, createInMemoryRepositories } from "../infrastructure/persistence/in-memory/app-memory";
+import { createSupabaseClient, SupabaseIdGenerator } from "../infrastructure/persistence/supabase/client";
+import { createSupabaseRepositories } from "../infrastructure/persistence/supabase/repositories";
 
 export const createApplicationContext = (env: AppEnv) => {
   const logger = pino({
     level: env.nodeEnv === "production" ? "info" : "debug"
   });
 
-  const repositories = createInMemoryRepositories();
-  const idGenerator = new UuidIdGenerator();
+  const useSupabase = Boolean(env.supabaseUrl && env.supabaseServiceRoleKey);
+  const repositories = useSupabase
+    ? createSupabaseRepositories(createSupabaseClient(env))
+    : createInMemoryRepositories();
+  const idGenerator = useSupabase ? new SupabaseIdGenerator() : new UuidIdGenerator();
   const clock = new SystemClock();
+
+  logger.info(`Persistence: ${useSupabase ? "Supabase" : "in-memory"}`);
   const passwordService = new BcryptPasswordService();
   const tokenService = new JwtTokenService({
     accessSecret: env.jwtAccessSecret,
