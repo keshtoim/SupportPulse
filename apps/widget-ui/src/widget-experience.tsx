@@ -51,6 +51,7 @@ export function WidgetExperience({
   const [messages, setMessages] = useState<MessageRecord[]>([])
   const [draft, setDraft] = useState('')
   const [sending, setSending] = useState(false)
+  const [typing, setTyping] = useState(false)
   const [chatError, setChatError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -142,30 +143,42 @@ export function WidgetExperience({
 
   const handleSendMessage = async (event: Event) => {
     event.preventDefault()
+    const content = draft.trim()
+    if (!content) return
 
-    if (!draft.trim()) {
-      return
-    }
+    // Оптимистичное обновление: очищаем поле и сразу показываем сообщение клиента
+    const tempId = `temp-${Date.now()}`
+    setDraft('')
+    setMessages(prev => [...prev, {
+      id: tempId,
+      sessionId: sessionId ?? 'pending',
+      ticketId: null,
+      senderType: 'client',
+      content,
+      createdAt: new Date().toISOString(),
+    }])
+    setTyping(true)
+    setSending(true)
+    setChatError(null)
 
     try {
-      setSending(true)
-      setChatError(null)
       const nextSessionId = await ensureSession()
       const payload = await apiRequest<PostMessageResponse>(
         `/public/tenants/${tenantId}/dialogue-sessions/${nextSessionId}/messages`,
         {
           method: 'POST',
-          body: JSON.stringify({
-            content: draft.trim(),
-          }),
+          body: JSON.stringify({ content }),
         },
       )
 
-      setDraft('')
+      // Убираем временное сообщение и добавляем реальные
+      setMessages(prev => prev.filter(m => m.id !== tempId))
       applyPayload(payload)
     } catch (error) {
+      setMessages(prev => prev.filter(m => m.id !== tempId))
       setChatError((error as Error).message)
     } finally {
+      setTyping(false)
       setSending(false)
     }
   }
@@ -386,10 +399,26 @@ export function WidgetExperience({
                       )}
                       <article class={`chat-bubble ${message.senderType}`}>
                         <p>{message.content}</p>
-                        <time class="bubble-time">{formatDateTime(message.createdAt)}</time>
+                        {message.senderType !== 'system' && (
+                          <time class="bubble-time">{formatDateTime(message.createdAt)}</time>
+                        )}
                       </article>
                     </div>
                   ))}
+
+                  {/* Индикатор "печатает..." пока ждём ответа */}
+                  {typing && (
+                    <div class="chat-row chat-row-left">
+                      <div class="chat-avatar">
+                        <img class="app-icon xs" src="/app-icon.png" alt="AI" />
+                      </div>
+                      <article class="chat-bubble ai typing-bubble">
+                        <span class="typing-dot" />
+                        <span class="typing-dot" />
+                        <span class="typing-dot" />
+                      </article>
+                    </div>
+                  )}
                 </div>
               </section>
 
