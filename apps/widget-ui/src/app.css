@@ -49,10 +49,10 @@ html.embed-mode .widget-shell {
 }
 
 .widget-shell {
-  width: min(608px, 100%);
+  width: min(430px, 100%);
   min-height: calc(100svh - 56px);
   margin: 0 auto;
-  background: #f8f8fa;
+  background: #f2f3f7;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -63,22 +63,41 @@ html.embed-mode .widget-shell {
 }
 
 .widget-header {
-  padding: 14px 16px 8px;
+  padding: 12px 16px;
   display: grid;
   grid-template-columns: 40px 1fr 40px;
   align-items: center;
   gap: 10px;
+  background: #fff;
+  border-bottom: 1px solid #eaecf2;
 }
 
 .icon-button {
   border: none;
   border-radius: 999px;
-  width: 40px;
-  height: 40px;
-  background: #ebedf2;
-  font-size: 28px;
+  width: 36px;
+  height: 36px;
+  background: #f0f2f7;
+  display: grid;
+  place-items: center;
   color: #1f2430;
   cursor: pointer;
+}
+
+/* Центрированная шапка чата */
+.chat-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.chat-brand-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  overflow: hidden;
+  flex-shrink: 0;
 }
 
 .brand-chip {
@@ -106,6 +125,7 @@ html.embed-mode .widget-shell {
 .app-icon.sm {
   width: 44px;
   height: 44px;
+  border-radius: 12px;
 }
 
 .app-icon.md {
@@ -133,10 +153,27 @@ html.embed-mode .widget-shell {
 
 .screen-body {
   flex: 1;
-  padding: 10px 16px 14px;
+  padding: 14px 14px 14px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
+  overflow-y: auto;
+}
+
+/* Большой градиентный hero — главный экран виджета */
+.widget-hero {
+  background: linear-gradient(160deg, #6a8fff 0%, #a87bff 100%);
+  padding: 36px 20px 44px;
+  text-align: center;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.widget-hero h1 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
 }
 
 .hero-banner {
@@ -158,39 +195,50 @@ html.embed-mode .widget-shell {
 
 .card {
   background: #fff;
-  border-radius: 26px;
-  padding: 16px;
-  box-shadow: 0 6px 18px rgba(25, 42, 73, 0.14);
+  border-radius: 18px;
+  padding: 14px;
+  box-shadow: 0 2px 10px rgba(25, 42, 73, 0.08);
 }
 
+/* Intro-карточка: иконка слева, текст справа, кнопка снизу */
 .intro-card {
-  display: grid;
-  grid-template-columns: 72px 1fr;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: -28px; /* накрывает край hero */
+}
+
+.intro-card-row {
+  display: flex;
+  align-items: flex-start;
   gap: 12px;
 }
 
-.intro-icon {
-  width: 68px;
-  height: 68px;
-  border-radius: 14px;
+.intro-avatar {
+  flex-shrink: 0;
 }
 
-.intro-card p {
+.intro-text {
   margin: 0;
-  font-size: 18px;
-  line-height: 1.25;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #3a4254;
 }
 
 .primary-button {
-  grid-column: 1 / -1;
   border: none;
-  border-radius: 18px;
-  min-height: 84px;
+  border-radius: 14px;
+  min-height: 48px;
   color: #fff;
   background: #4b94ff;
-  font-size: 28px;
+  font-size: 16px;
   font-weight: 700;
   cursor: pointer;
+  width: 100%;
+}
+
+.primary-button:hover {
+  background: #3a84ee;
 }
 
 .feature-card {
@@ -210,43 +258,113 @@ html.embed-mode .widget-shell {
   display: block;
 }
 
+/* Flat-аккордеон тем */
+.topic-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.accordion-item {
+  width: 100%;
+  background: #fff;
+  border: none;
+  border-radius: 14px;
+  min-height: 52px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 15px;
+  font-weight: 600;
+  color: #202531;
+  cursor: pointer;
+  box-shadow: 0 1px 6px rgba(25, 42, 73, 0.07);
+  text-align: left;
+}
+
+.accordion-item svg {
+  color: #9aa3b8;
+  flex-shrink: 0;
+}
+
 .chat-screen {
   justify-content: flex-start;
 }
 
-.chat-bubble {
-  max-width: calc(100% - 46px);
-  border-radius: 22px;
-  padding: 16px;
-  background: #fff;
-  box-shadow: 0 6px 16px rgba(25, 42, 73, 0.14);
+/* Строка чата с аватаром */
+.chat-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
 }
 
-.chat-bubble p {
-  margin: 0;
-  font-size: 20px;
-  line-height: 1.35;
+.chat-row-right {
+  flex-direction: row-reverse;
 }
 
-.widget-footer {
-  background: #fff;
-  border-radius: 30px 30px 0 0;
-  margin-top: auto;
-  box-shadow: 0 -5px 18px rgba(25, 42, 73, 0.12);
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+.chat-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
   overflow: hidden;
+  flex-shrink: 0;
+  background: #eef0f6;
 }
 
-.tab-button {
-  min-height: 68px;
-  border: none;
-  background: #fff;
+.chat-avatar-placeholder {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: #4b94ff;
+  color: #fff;
   font-size: 12px;
   font-weight: 700;
   display: grid;
   place-items: center;
-  gap: 4px;
+}
+
+.chat-bubble {
+  max-width: calc(100% - 46px);
+  border-radius: 16px;
+  padding: 12px 14px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(25, 42, 73, 0.08);
+}
+
+.chat-bubble p {
+  margin: 0 0 4px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.bubble-time {
+  display: block;
+  font-size: 11px;
+  color: #9aa3b8;
+  text-align: right;
+}
+
+.widget-footer {
+  background: #fff;
+  border-top: 1px solid #eaecf2;
+  margin-top: auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.tab-button {
+  min-height: 60px;
+  border: none;
+  background: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  color: #8a93a8;
+  display: grid;
+  place-items: center;
+  gap: 3px;
   cursor: pointer;
 }
 
@@ -254,49 +372,72 @@ html.embed-mode .widget-shell {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
 }
 
 .tab-icon svg {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
 }
 
 .tab-button.active {
-  background: #f0f4ff;
+  color: #4b94ff;
 }
 
 .composer {
-  margin: 0 16px 16px;
-  padding: 10px 12px;
+  margin: 0 14px 14px;
+  padding: 8px 8px 8px 14px;
   background: #fff;
-  border-radius: 26px;
-  box-shadow: 0 6px 16px rgba(25, 42, 73, 0.16);
-  display: grid;
-  grid-template-columns: 42px 1fr 56px;
-  gap: 8px;
+  border-radius: 999px;
+  box-shadow: 0 2px 12px rgba(25, 42, 73, 0.12);
+  display: flex;
   align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .composer input {
   border: none;
   outline: none;
-  font-size: 20px;
+  font-size: 14px;
+  flex: 1;
+  background: transparent;
+  color: #202531;
 }
 
-.composer-icon,
+.composer input::placeholder {
+  color: #b0b8cc;
+}
+
+.composer-plus {
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  background: #f0f2f7;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  color: #5a6278;
+}
+
 .composer-send {
   border: none;
-  border-radius: 16px;
-  min-height: 42px;
-  font-size: 30px;
-  background: #edf0f6;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  background: #202531;
+  color: #fff;
+  display: grid;
+  place-items: center;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
-.composer-send {
-  background: #d9deea;
+.composer-send:disabled {
+  opacity: 0.5;
 }
 
 .admin-shell {
@@ -982,21 +1123,31 @@ html.embed-mode .widget-shell {
 }
 
 .chat-bubble.client {
-  margin-left: auto;
   background: #4b94ff;
   color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.chat-bubble.client .bubble-time {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.chat-bubble.ai {
+  border-bottom-left-radius: 4px;
 }
 
 .chat-bubble.operator {
   background: #eef4ff;
+  border-bottom-left-radius: 4px;
 }
 
 .chat-bubble.system {
   background: #f3f4f7;
-}
-
-.chat-bubble.client .message-caption {
-  color: rgba(255, 255, 255, 0.82);
+  border-radius: 12px;
+  font-size: 12px;
+  color: #6a7382;
+  text-align: center;
+  max-width: 100%;
 }
 
 .secondary-button,

@@ -223,28 +223,36 @@ export function WidgetExperience({
 
   return (
     <section class={`widget-shell ${!active ? 'is-hidden' : ''}`}>
-      <header class="widget-header">
-        <button
-          class="icon-button"
-          type="button"
-          aria-label="Назад"
-          onClick={() => {
-            if (screen === 'chat') onScreenChange('home')
-          }}
-        >
-          ←
-        </button>
-        <div class="brand-chip">
-          <img class="app-icon sm" src="/app-icon.png" alt="SupportPulse" />
-          <div class="brand-copy">
-            <strong>{widgetData?.tenant.name ?? 'SupportPulse'}</strong>
-            <span>AI-помощник поддержки</span>
+
+      {/* Compact header — только на экране чата */}
+      {screen === 'chat' && (
+        <header class="widget-header">
+          <button
+            class="icon-button"
+            type="button"
+            aria-label="Назад"
+            onClick={() => onScreenChange('home')}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+          </button>
+          <div class="chat-brand">
+            <div class="chat-brand-icon">
+              <img class="app-icon xs" src="/app-icon.png" alt="SupportPulse" />
+            </div>
+            <div class="brand-copy">
+              <strong>Помощник</strong>
+              <span>ИИ-ассистент</span>
+            </div>
           </div>
-        </div>
-        <button class="icon-button" type="button" aria-label="Открыть панель" onClick={() => onOpenAdmin('dashboard')}>
-          ≡
-        </button>
-      </header>
+          <button class="icon-button" type="button" aria-label="Открыть панель" onClick={() => onOpenAdmin('dashboard')}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="18" height="18">
+              <path d="M5 12h14M5 6h14M5 18h14" />
+            </svg>
+          </button>
+        </header>
+      )}
 
       {loadingWidget ? (
         <section class="screen-body">
@@ -255,185 +263,161 @@ export function WidgetExperience({
       ) : (
         <>
           {widgetError && <div class="alert-banner error">{widgetError}</div>}
+
           {screen === 'home' ? (
-            <section class="screen-body">
-              <div class="hero-banner">
-                <div>
-                  <span class="hero-eyebrow">SupportPulse</span>
-                  <h1>{widgetData?.tenant.name ?? 'Поддержка'}</h1>
-                  <p>FAQ, AI-ответы и эскалация на оператора в одном окне.</p>
-                </div>
+            <>
+              {/* Большой градиентный hero */}
+              <div class="widget-hero">
+                <h1>Свяжитесь с нами!</h1>
               </div>
 
-              <article class="card intro-card widget-intro-card">
-                <img class="app-icon intro-icon" src="/app-icon.png" alt="SupportPulse" />
-                <div class="helper-copy">
-                  <p>{widgetData?.widgetConfig.welcomeMessage ?? 'Опишите проблему, и я постараюсь помочь.'}</p>
-                  <div class="inline-form">
-                    <input
-                      class="text-input small"
-                      type="text"
-                      placeholder="Ваше имя"
-                      value={customerName}
-                      onInput={(event) => setCustomerName((event.currentTarget as HTMLInputElement).value)}
-                    />
-                    <input
-                      class="text-input small"
-                      type="email"
-                      placeholder="Email для связи"
-                      value={customerEmail}
-                      onInput={(event) => setCustomerEmail((event.currentTarget as HTMLInputElement).value)}
-                    />
+              <section class="screen-body">
+                {/* Intro-карточка: иконка + текст + кнопка */}
+                <article class="card intro-card">
+                  <div class="intro-card-row">
+                    <div class="intro-avatar">
+                      <img class="app-icon sm" src="/app-icon.png" alt="SupportPulse" />
+                    </div>
+                    <p class="intro-text">
+                      {widgetData?.widgetConfig.welcomeMessage ?? 'Опишите проблему, и я постараюсь помочь.'}
+                    </p>
                   </div>
-                </div>
-                <button class="primary-button" type="button" onClick={() => onScreenChange('chat')}>
-                  Открыть чат
-                </button>
-              </article>
-
-              {widgetData?.widgetConfig.showPrivacyNotice && widgetData.widgetConfig.privacyNotice && (
-                <article class="card compact-card">
-                  <strong>Политика обработки данных</strong>
-                  <p>{widgetData.widgetConfig.privacyNotice}</p>
+                  <button class="primary-button" type="button" onClick={() => onScreenChange('chat')}>
+                    Задать вопрос
+                  </button>
                 </article>
-              )}
 
-              <form class="faq-search" onSubmit={handleFaqSearch}>
-                <input
-                  class="text-input"
-                  type="text"
-                  placeholder="Поиск по FAQ"
-                  value={searchQuery}
-                  onInput={(event) => setSearchQuery((event.currentTarget as HTMLInputElement).value)}
-                />
-                <button class="secondary-button" type="submit" disabled={searching}>
-                  {searching ? 'Ищу...' : 'Найти'}
-                </button>
-              </form>
-
-              {searchResults.length > 0 && (
-                <section class="search-list">
-                  {searchResults.map((article) => (
+                {/* Темы как flat-аккордеон */}
+                <div class="topic-accordion">
+                  {widgetData?.topics.map((topic) => (
                     <button
-                      class="faq-item"
+                      class="accordion-item"
                       type="button"
-                      key={article.id}
+                      key={topic.id}
                       onClick={() => {
-                        setDraft(article.question)
                         onScreenChange('chat')
                       }}
                     >
-                      <strong>{article.question}</strong>
-                      <span>{article.answer}</span>
+                      <span>{topic.title}</span>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                        <path d="M9 18l6-6-6-6" />
+                      </svg>
                     </button>
                   ))}
-                </section>
-              )}
-
-              <section class="topic-stack">
-                {widgetData?.topics.map((topic) => (
-                  <article class="card topic-card" key={topic.id}>
-                    <div class="topic-header">
-                      <div>
-                        <h2>{topic.title}</h2>
-                        <span>{topic.articles.length} материалов в базе знаний</span>
-                      </div>
-                    </div>
-                    <div class="faq-list">
-                      {topic.articles.slice(0, 3).map((article) => (
-                        <button
-                          class="faq-item"
-                          type="button"
-                          key={article.id}
-                          onClick={() => {
-                            setDraft(article.question)
-                            onScreenChange('chat')
-                          }}
-                        >
-                          <strong>{article.question}</strong>
-                          <span>{article.answer}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </article>
-                ))}
-              </section>
-            </section>
-          ) : (
-            <section class="screen-body chat-screen">
-              <div class="chat-status-bar">
-                <span class={`status-pill ${ticket ? 'operator' : 'ai'}`}>
-                  {ticket ? statusLabel[ticket.status] : 'AI отвечает'}
-                </span>
-                <button class="secondary-link" type="button" disabled={sending} onClick={handleEscalate}>
-                  Позвать оператора
-                </button>
-              </div>
-
-              {session && (
-                <div class="helper-hint">
-                  Сессия: {session.id.slice(0, 8)} {ticket ? `· ${statusLabel[ticket.status]}` : '· без эскалации'}
                 </div>
-              )}
 
-              {chatError && <div class="alert-banner error compact">{chatError}</div>}
+                {/* FAQ поиск */}
+                {searchResults.length > 0 && (
+                  <section class="search-list">
+                    {searchResults.map((article) => (
+                      <button
+                        class="faq-item"
+                        type="button"
+                        key={article.id}
+                        onClick={() => {
+                          setDraft(article.question)
+                          onScreenChange('chat')
+                        }}
+                      >
+                        <strong>{article.question}</strong>
+                        <span>{article.answer}</span>
+                      </button>
+                    ))}
+                  </section>
+                )}
+              </section>
 
-              <div class="chat-log">
-                {visibleMessages.map((message) => (
-                  <article class={`chat-bubble ${message.senderType}`} key={message.id}>
-                    <div class="message-caption">
-                      <strong>{senderLabel[message.senderType]}</strong>
-                      <span>{formatDateTime(message.createdAt)}</span>
+              {/* Таб-бар — только на главном экране */}
+              <footer class="widget-footer">
+                <button
+                  class={`tab-button ${screen === 'home' ? 'active' : ''}`}
+                  type="button"
+                  onClick={() => onScreenChange('home')}
+                >
+                  <span class="tab-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M3 12L12 3l9 9" /><path d="M9 21V12h6v9" /><path d="M3 12v9h18v-9" />
+                    </svg>
+                  </span>
+                  Дом
+                </button>
+                <button
+                  class="tab-button"
+                  type="button"
+                  onClick={() => onScreenChange('chat')}
+                >
+                  <span class="tab-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                    </svg>
+                  </span>
+                  Чат
+                </button>
+              </footer>
+            </>
+          ) : (
+            /* Экран чата */
+            <>
+              <section class="screen-body chat-screen">
+                <div class="chat-status-bar">
+                  <span class={`status-pill ${ticket ? 'operator' : 'ai'}`}>
+                    {ticket ? statusLabel[ticket.status] : 'AI отвечает'}
+                  </span>
+                  <button class="secondary-link" type="button" disabled={sending} onClick={handleEscalate}>
+                    Позвать оператора
+                  </button>
+                </div>
+
+                {chatError && <div class="alert-banner error compact">{chatError}</div>}
+
+                <div class="chat-log">
+                  {visibleMessages.map((message) => (
+                    <div class={`chat-row ${message.senderType === 'client' ? 'chat-row-right' : 'chat-row-left'}`} key={message.id}>
+                      {message.senderType !== 'client' && (
+                        <div class="chat-avatar">
+                          {message.senderType === 'ai' ? (
+                            <img class="app-icon xs" src="/app-icon.png" alt="AI" />
+                          ) : (
+                            <div class="chat-avatar-placeholder">
+                              {message.senderType === 'operator' ? 'О' : 'S'}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      <article class={`chat-bubble ${message.senderType}`}>
+                        <p>{message.content}</p>
+                        <time class="bubble-time">{formatDateTime(message.createdAt)}</time>
+                      </article>
                     </div>
-                    <p>{message.content}</p>
-                  </article>
-                ))}
-              </div>
-            </section>
-          )}
+                  ))}
+                </div>
+              </section>
 
-          <footer class="widget-footer">
-            <button
-              class={`tab-button ${screen === 'home' ? 'active' : ''}`}
-              type="button"
-              onClick={() => onScreenChange('home')}
-            >
-              <span class="tab-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M3 12L12 3l9 9" /><path d="M9 21V12h6v9" /><path d="M3 12v9h18v-9" />
-                </svg>
-              </span>
-              Дом
-            </button>
-            <button
-              class={`tab-button ${screen === 'chat' ? 'active' : ''}`}
-              type="button"
-              onClick={() => onScreenChange('chat')}
-            >
-              <span class="tab-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                </svg>
-              </span>
-              Чат
-            </button>
-          </footer>
-
-          {screen === 'chat' && (
-            <form class="composer" onSubmit={handleSendMessage}>
-              <button class="composer-icon" type="button" aria-label="FAQ" onClick={() => onScreenChange('home')}>
-                ?
-              </button>
-              <input
-                type="text"
-                placeholder="Сообщение..."
-                value={draft}
-                onInput={(event) => setDraft((event.currentTarget as HTMLInputElement).value)}
-              />
-              <button class="composer-send" type="submit" aria-label="Отправить" disabled={sending}>
-                {sending ? '…' : '↑'}
-              </button>
-            </form>
+              <form class="composer" onSubmit={handleSendMessage}>
+                <button class="composer-plus" type="button" aria-label="FAQ" onClick={() => onScreenChange('home')}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" width="18" height="18">
+                    <path d="M12 5v14M5 12h14" />
+                  </svg>
+                </button>
+                <input
+                  type="text"
+                  placeholder="Сообщение..."
+                  value={draft}
+                  onInput={(event) => setDraft((event.currentTarget as HTMLInputElement).value)}
+                />
+                <button class="composer-send" type="submit" aria-label="Отправить" disabled={sending}>
+                  {sending ? (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" width="16" height="16">
+                      <path d="M12 19V5M5 12l7-7 7 7" />
+                    </svg>
+                  ) : (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" width="16" height="16">
+                      <path d="M12 19V5M5 12l7-7 7 7" />
+                    </svg>
+                  )}
+                </button>
+              </form>
+            </>
           )}
         </>
       )}
