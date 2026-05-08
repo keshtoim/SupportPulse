@@ -31,6 +31,7 @@ type WidgetServiceDependencies = {
 export class WidgetSupportApplicationService {
   constructor(private readonly dependencies: WidgetServiceDependencies) {}
 
+  /** Возвращает публичные данные виджета: тенант, конфиг, темы с вложенными статьями FAQ */
   async getWidget(tenantId: string) {
     const tenant = await ensureTenantActive(this.dependencies.tenantRepository, tenantId);
     const widgetConfig = await this.dependencies.widgetConfigRepository.getByTenantId(tenantId);
@@ -54,11 +55,13 @@ export class WidgetSupportApplicationService {
     };
   }
 
+  /** Полнотекстовый поиск по FAQ тенанта */
   async searchFaq(tenantId: string, query: string) {
     await ensureTenantActive(this.dependencies.tenantRepository, tenantId);
     return this.dependencies.faqRepository.searchByTenant(tenantId, query);
   }
 
+  /** Возвращает сообщения сессии вместе с привязанным тикетом (если есть) */
   async getSessionMessages(tenantId: string, sessionId: string) {
     await ensureTenantActive(this.dependencies.tenantRepository, tenantId);
     const session = await this.dependencies.sessionRepository.getById(sessionId);
@@ -77,6 +80,7 @@ export class WidgetSupportApplicationService {
     };
   }
 
+  /** Создаёт новую сессию диалога в состоянии ai_active */
   async startSession(tenantId: string, payload: { customerName?: string; customerEmail?: string }) {
     await ensureTenantActive(this.dependencies.tenantRepository, tenantId);
     const now = this.dependencies.clock.now().toISOString();
@@ -95,6 +99,11 @@ export class WidgetSupportApplicationService {
     return this.dependencies.sessionRepository.create(session);
   }
 
+  /**
+   * Основная логика обработки сообщения клиента:
+   * - Если оператор уже подключён — сообщение ставится в очередь к нему
+   * - Иначе AI принимает решение: ответить / уточнить / эскалировать
+   */
   async postClientMessage(tenantId: string, sessionId: string, content: string) {
     const tenant = await ensureTenantActive(this.dependencies.tenantRepository, tenantId);
     const widgetConfig = await this.dependencies.widgetConfigRepository.getByTenantId(tenantId);
@@ -124,6 +133,7 @@ export class WidgetSupportApplicationService {
       createdAt: this.dependencies.clock.now().toISOString()
     });
 
+    // Если сессия уже передана оператору — AI не отвечает, сообщение идёт в тикет
     if (session.state !== "ai_active" && existingTicket) {
       const queuedReply = await this.dependencies.messageRepository.create({
         id: this.dependencies.idGenerator.next("msg"),
@@ -216,6 +226,7 @@ export class WidgetSupportApplicationService {
       };
     }
 
+    // AI решил эскалировать (низкая уверенность или явный запрос оператора)
     return this.escalateSessionToOperator(session, {
       requestedBy: "ai",
       reason: replyDecision.reason,
@@ -224,6 +235,7 @@ export class WidgetSupportApplicationService {
     });
   }
 
+  /** Явная эскалация к оператору по запросу клиента */
   async requestOperator(
     tenantId: string,
     sessionId: string,
@@ -241,6 +253,7 @@ export class WidgetSupportApplicationService {
       throw new AppError("Сессия не найдена.", 404, "SESSION_NOT_FOUND");
     }
 
+    // Обновляем контактные данные клиента, если переданы
     const nextSession = await this.dependencies.sessionRepository.update({
       ...session,
       customerName: payload.customerName?.trim() || session.customerName,
@@ -255,6 +268,10 @@ export class WidgetSupportApplicationService {
     });
   }
 
+  /**
+   * Общая логика эскалации: создаёт тикет и переводит сессию в waiting_operator.
+   * Если активный тикет уже существует — не создаёт дубликат.
+   */
   private async escalateSessionToOperator(
     session: DialogueSession,
     escalation: {
@@ -266,6 +283,7 @@ export class WidgetSupportApplicationService {
   ) {
     const existingTicket = await this.dependencies.ticketRepository.findBySessionId(session.id);
 
+    // Защита от двойной эскалации
     if (existingTicket && existingTicket.status !== "closed") {
       const reminderMessage = await this.dependencies.messageRepository.create({
         id: this.dependencies.idGenerator.next("msg"),

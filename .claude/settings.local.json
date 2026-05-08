@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Recurse -Path \"k:\\\\SupportPulse\\\\supportpusle-fullstack\\\\src\" -Filter \"*.ts\")",
+      "Bash(Select-Object FullName)"
+    ]
+  }
+}

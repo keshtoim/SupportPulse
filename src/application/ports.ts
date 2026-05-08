@@ -14,6 +14,7 @@ import type {
   WidgetConfig
 } from "../domain/model";
 
+/** Payload, хранимый внутри JWT-токена */
 export interface AuthTokenPayload {
   sub: string;
   tenantId: string | null;
@@ -22,24 +23,29 @@ export interface AuthTokenPayload {
   name: string;
 }
 
+/** Запись refresh-токена в хранилище */
 export interface RefreshTokenRecord {
   token: string;
   userId: string;
   expiresAt: string;
 }
 
+/** Генератор уникальных идентификаторов с префиксом */
 export interface IdGenerator {
   next(prefix: string): string;
 }
 
+/** Источник текущего времени — выделен для упрощения тестирования */
 export interface Clock {
   now(): Date;
 }
 
+/** Проверка паролей */
 export interface PasswordService {
   compare(plainText: string, hash: string): Promise<boolean>;
 }
 
+/** Генерация и верификация JWT access/refresh токенов */
 export interface TokenService {
   generateAccessToken(payload: AuthTokenPayload): string;
   generateRefreshToken(payload: AuthTokenPayload): RefreshTokenRecord;
@@ -47,9 +53,12 @@ export interface TokenService {
   verifyRefreshToken(token: string): AuthTokenPayload;
 }
 
+/** AI-сервис, принимающий вопрос и контекст, возвращающий решение об ответе */
 export interface SupportAnswerService {
   answer(context: SupportReplyContext): Promise<SupportReplyDecision>;
 }
+
+// --- Репозитории — абстракции над хранилищем данных ---
 
 export interface TenantRepository {
   list(): Promise<Tenant[]>;

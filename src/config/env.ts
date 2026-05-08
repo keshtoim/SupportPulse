@@ -1,10 +1,13 @@
 import { config } from "dotenv";
 import { z } from "zod";
 
+// Загружает .env файл перед парсингом переменных окружения
 config();
 
+// Дефолтные секреты запрещены в production для предотвращения утечек
 const DEV_SECRETS = ["dev-access-secret", "dev-refresh-secret"];
 
+// Схема переменных окружения с приведением типов и значениями по умолчанию
 const envSchema = z
   .object({
     PORT: z.coerce.number().int().positive().default(3000),
@@ -20,6 +23,7 @@ const envSchema = z
     SUPABASE_SERVICE_ROLE_KEY: z.string().optional()
   })
   .superRefine((data, ctx) => {
+    // Дополнительные проверки безопасности только для production
     if (data.NODE_ENV !== "production") return;
 
     if (DEV_SECRETS.includes(data.JWT_ACCESS_SECRET) || DEV_SECRETS.includes(data.JWT_REFRESH_SECRET)) {
@@ -31,6 +35,7 @@ const envSchema = z
     }
   });
 
+/** Типизированные переменные окружения приложения */
 export type AppEnv = {
   port: number;
   nodeEnv: "development" | "test" | "production";
@@ -45,6 +50,7 @@ export type AppEnv = {
   supabaseServiceRoleKey?: string;
 };
 
+/** Парсит и валидирует переменные окружения, выбрасывает при ошибке */
 export const loadEnv = (): AppEnv => {
   const parsed = envSchema.parse(process.env);
 

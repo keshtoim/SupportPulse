@@ -25,11 +25,13 @@ type PlatformServiceDependencies = {
 export class PlatformAdministrationApplicationService {
   constructor(private readonly dependencies: PlatformServiceDependencies) {}
 
+  /** Возвращает список всех тенантов платформы */
   async listTenants(actor: AuthenticatedUser) {
     ensureRole(actor, platformRoles);
     return this.dependencies.tenantRepository.list();
   }
 
+  /** Создаёт нового тенанта с дефолтной конфигурацией виджета */
   async createTenant(actor: AuthenticatedUser, payload: { name: string }) {
     ensureRole(actor, platformRoles);
     const now = this.dependencies.clock.now().toISOString();
@@ -40,6 +42,7 @@ export class PlatformAdministrationApplicationService {
       createdAt: now
     });
 
+    // Сразу создаём дефолтный виджет-конфиг для нового тенанта
     await this.dependencies.widgetConfigRepository.upsert({
       id: this.dependencies.idGenerator.next("widget"),
       tenantId: tenant.id,
@@ -66,6 +69,7 @@ export class PlatformAdministrationApplicationService {
     return tenant;
   }
 
+  /** Блокирует или разблокирует тенанта */
   async setTenantBlocked(actor: AuthenticatedUser, tenantId: string, isBlocked: boolean) {
     ensureRole(actor, platformRoles);
     const tenant = await this.dependencies.tenantRepository.getById(tenantId);
@@ -93,6 +97,7 @@ export class PlatformAdministrationApplicationService {
     return updated;
   }
 
+  /** Агрегированные метрики по всей платформе */
   async getMetrics(actor: AuthenticatedUser) {
     ensureRole(actor, platformRoles);
 

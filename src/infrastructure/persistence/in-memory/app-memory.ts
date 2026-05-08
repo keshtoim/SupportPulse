@@ -1,3 +1,5 @@
+// In-memory реализации репозиториев для локальной разработки.
+// Данные хранятся в Map-ах и сбрасываются при перезапуске.
 import { hashSync } from "bcryptjs";
 import { v4 as uuidv4 } from "uuid";
 import type {
@@ -17,8 +19,10 @@ import type {
 } from "../../../application/ports";
 import type { AuditLog, DialogueSession, FaqArticle, Message, Tenant, Ticket, Topic, User, WidgetConfig } from "../../../domain/model";
 
+// Глубокое клонирование гарантирует изоляцию данных между запросами
 const clone = <Value>(value: Value): Value => structuredClone(value);
 
+/** Общее хранилище всех данных. Инициализируется демо-данными при создании */
 class InMemoryDatabase {
   readonly tenants = new Map<string, Tenant>();
   readonly users = new Map<string, User>();
@@ -35,6 +39,7 @@ class InMemoryDatabase {
     this.seed();
   }
 
+  /** Заполняет хранилище демо-тенантами, пользователями и FAQ для быстрого старта */
   private seed() {
     const createdAt = new Date("2026-04-01T10:00:00.000Z").toISOString();
     const passwordHash = hashSync("Admin123!", 10);
@@ -183,12 +188,14 @@ class InMemoryDatabase {
   }
 }
 
+/** Генерирует ID вида "prefix-uuid" */
 export class UuidIdGenerator implements IdGenerator {
   next(prefix: string): string {
     return `${prefix}-${uuidv4()}`;
   }
 }
 
+/** Реальные системные часы */
 export class SystemClock implements Clock {
   now(): Date {
     return new Date();
@@ -426,6 +433,7 @@ export class InMemoryRefreshTokenRepository implements RefreshTokenRepository {
   }
 }
 
+/** Создаёт набор in-memory репозиториев, все разделяют один InMemoryDatabase */
 export const createInMemoryRepositories = () => {
   const database = new InMemoryDatabase();
 

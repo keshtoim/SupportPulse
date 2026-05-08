@@ -9,10 +9,12 @@ export class AuthenticationApplicationService {
     private readonly tokenService: TokenService
   ) {}
 
+  /** Аутентификация по email/паролю. Возвращает пользователя и пару JWT-токенов */
   async login(email: string, password: string): Promise<{ user: PublicUser; tokens: { accessToken: string; refreshToken: string } }> {
     const normalizedEmail = email.trim().toLowerCase();
     const user = await this.userRepository.findByEmail(normalizedEmail);
 
+    // Одинаковое сообщение для несуществующего и заблокированного — не раскрываем причину
     if (!user || user.isBlocked) {
       throw new AppError("Неверный логин или пароль.", 401, "INVALID_CREDENTIALS");
     }
@@ -45,6 +47,7 @@ export class AuthenticationApplicationService {
     };
   }
 
+  /** Ротация refresh-токена: старый отзывается, выдаётся новая пара */
   async refresh(refreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {
     const storedRefreshToken = await this.refreshTokenRepository.get(refreshToken);
 
@@ -59,6 +62,7 @@ export class AuthenticationApplicationService {
       throw new AppError("Пользователь недоступен.", 401, "USER_NOT_FOUND");
     }
 
+    // Отзываем старый токен перед выдачей нового
     await this.refreshTokenRepository.revoke(refreshToken);
 
     const nextPayload = {

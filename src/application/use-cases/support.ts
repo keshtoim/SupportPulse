@@ -1,16 +1,19 @@
 import type { AuditLogRepository, Clock, IdGenerator, TenantRepository } from "../ports";
 import { AppError, type AuthenticatedUser, type Ticket, type UserRole } from "../../domain/model";
 
+// Наборы ролей для проверки доступа к эндпоинтам
 export const operatorRoles: UserRole[] = ["operator", "supervisor", "company_admin", "platform_admin"];
 export const companyAdminRoles: UserRole[] = ["company_admin", "platform_admin"];
 export const platformRoles: UserRole[] = ["platform_admin"];
 
+/** Выбрасывает 403, если роль актора не входит в allowedRoles */
 export const ensureRole = (actor: AuthenticatedUser, allowedRoles: UserRole[]): void => {
   if (!allowedRoles.includes(actor.role)) {
     throw new AppError("Недостаточно прав для выполнения действия.", 403, "FORBIDDEN");
   }
 };
 
+/** Выбрасывает 403 при попытке доступа к данным чужого тенанта; platform_admin обходит проверку */
 export const ensureTenantAccess = (actor: AuthenticatedUser, tenantId: string): void => {
   if (actor.role === "platform_admin") {
     return;
@@ -21,6 +24,7 @@ export const ensureTenantAccess = (actor: AuthenticatedUser, tenantId: string): 
   }
 };
 
+/** Загружает тенанта и проверяет, что он существует и не заблокирован */
 export const ensureTenantActive = async (tenantRepository: TenantRepository, tenantId: string) => {
   const tenant = await tenantRepository.getById(tenantId);
 
@@ -35,6 +39,7 @@ export const ensureTenantActive = async (tenantRepository: TenantRepository, ten
   return tenant;
 };
 
+/** Строит запись аудита без сохранения в БД */
 export const buildAuditEntry = (
   idGenerator: IdGenerator,
   clock: Clock,
@@ -57,6 +62,7 @@ export const buildAuditEntry = (
   createdAt: clock.now().toISOString()
 });
 
+/** Строит и сохраняет запись аудита */
 export const addAuditEntry = async (
   auditLogRepository: AuditLogRepository,
   idGenerator: IdGenerator,
@@ -73,6 +79,7 @@ export const addAuditEntry = async (
   await auditLogRepository.add(buildAuditEntry(idGenerator, clock, params));
 };
 
+/** Формирует плоский payload тикета для записи в аудит */
 export const mapTicketPayload = (ticket: Ticket) => ({
   id: ticket.id,
   tenantId: ticket.tenantId,

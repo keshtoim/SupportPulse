@@ -11,11 +11,16 @@ import { SystemClock, UuidIdGenerator, createInMemoryRepositories } from "../inf
 import { createSupabaseClient, SupabaseIdGenerator } from "../infrastructure/persistence/supabase/client";
 import { createSupabaseRepositories } from "../infrastructure/persistence/supabase/repositories";
 
+/**
+ * Точка сборки всех зависимостей приложения (DI-контейнер).
+ * Автоматически выбирает Supabase или in-memory хранилище по наличию env-переменных.
+ */
 export const createApplicationContext = (env: AppEnv) => {
   const logger = pino({
     level: env.nodeEnv === "production" ? "info" : "debug"
   });
 
+  // Если заданы Supabase-переменные — используем Supabase, иначе in-memory (для разработки)
   const useSupabase = Boolean(env.supabaseUrl && env.supabaseServiceRoleKey);
   const repositories = useSupabase
     ? createSupabaseRepositories(createSupabaseClient(env))
@@ -24,6 +29,7 @@ export const createApplicationContext = (env: AppEnv) => {
   const clock = new SystemClock();
 
   logger.info(`Persistence: ${useSupabase ? "Supabase" : "in-memory"}`);
+
   const passwordService = new BcryptPasswordService();
   const tokenService = new JwtTokenService({
     accessSecret: env.jwtAccessSecret,
@@ -31,6 +37,8 @@ export const createApplicationContext = (env: AppEnv) => {
     accessTtl: env.accessTokenTtl,
     refreshTtl: env.refreshTokenTtl
   });
+
+  // Если OPENAI_API_KEY не задан — FaqRagAnswerService работает в режиме без LLM
   const answerService = new FaqRagAnswerService({
     apiKey: env.openAiApiKey,
     model: env.openAiModel

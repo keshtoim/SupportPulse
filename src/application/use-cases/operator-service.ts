@@ -14,6 +14,7 @@ type OperatorServiceDependencies = {
 export class OperatorWorkbenchApplicationService {
   constructor(private readonly dependencies: OperatorServiceDependencies) {}
 
+  /** Возвращает тикеты тенанта (или все для platform_admin) с опциональной фильтрацией по статусу */
   async listTickets(actor: AuthenticatedUser, filters?: { status?: TicketStatus }) {
     ensureRole(actor, operatorRoles);
 
@@ -25,16 +26,19 @@ export class OperatorWorkbenchApplicationService {
     return tickets.filter((ticket) => (filters?.status ? ticket.status === filters.status : true));
   }
 
+  /** Возвращает все сообщения тикета */
   async getTicketMessages(actor: AuthenticatedUser, ticketId: string) {
     ensureRole(actor, operatorRoles);
     const ticket = await this.requireTicket(actor, ticketId);
     return this.dependencies.messageRepository.listByTicket(ticket.id);
   }
 
+  /** Берёт тикет в работу: назначает оператора, переводит в in_progress и синхронизирует состояние сессии */
   async claimTicket(actor: AuthenticatedUser, ticketId: string) {
     ensureRole(actor, operatorRoles);
     const ticket = await this.requireTicket(actor, ticketId);
 
+    // Оператор не может перехватить чужой тикет; supervisor/admin — могут
     if (ticket.assignedUserId && ticket.assignedUserId !== actor.id && actor.role === "operator") {
       throw new AppError("Тикет уже взят другим оператором.", 409, "TICKET_ALREADY_ASSIGNED");
     }
@@ -69,6 +73,7 @@ export class OperatorWorkbenchApplicationService {
     return nextTicket;
   }
 
+  /** Меняет статус тикета и синхронизирует состояние сессии */
   async changeTicketStatus(
     actor: AuthenticatedUser,
     ticketId: string,
@@ -80,6 +85,7 @@ export class OperatorWorkbenchApplicationService {
     ensureRole(actor, operatorRoles);
     const ticket = await this.requireTicket(actor, ticketId);
 
+    // Оператор не может менять статус чужого тикета
     if (actor.role === "operator" && ticket.assignedUserId && ticket.assignedUserId !== actor.id) {
       throw new AppError("Оператор не может менять статус чужого тикета.", 403, "TICKET_NOT_ASSIGNED_TO_OPERATOR");
     }
@@ -117,6 +123,7 @@ export class OperatorWorkbenchApplicationService {
     return nextTicket;
   }
 
+  /** Отправляет сообщение оператора в чат; автоматически назначает тикет, если не был назначен */
   async sendMessage(actor: AuthenticatedUser, ticketId: string, content: string) {
     ensureRole(actor, operatorRoles);
     const ticket = await this.requireTicket(actor, ticketId);
@@ -127,6 +134,7 @@ export class OperatorWorkbenchApplicationService {
     }
 
     const now = this.dependencies.clock.now().toISOString();
+    // Если оператор уже назначен и работает — не обновляем тикет лишний раз
     const nextTicket =
       ticket.assignedUserId === actor.id && ticket.status === "in_progress"
         ? ticket
@@ -177,6 +185,7 @@ export class OperatorWorkbenchApplicationService {
     };
   }
 
+  /** Загружает тикет и проверяет право доступа актора к нему */
   private async requireTicket(actor: AuthenticatedUser, ticketId: string) {
     const ticket = await this.dependencies.ticketRepository.getById(ticketId);
 

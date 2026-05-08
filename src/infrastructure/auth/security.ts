@@ -2,6 +2,7 @@ import { compare } from "bcryptjs";
 import jwt, { type JwtPayload, type SignOptions } from "jsonwebtoken";
 import type { AuthTokenPayload, PasswordService, TokenService } from "../../application/ports";
 
+/** Парсит строку вида "15m", "2h", "7d" в миллисекунды */
 const parseDurationToMilliseconds = (value: string): number => {
   const match = value.trim().match(/^(\d+)([mhd])$/i);
 
@@ -23,12 +24,14 @@ const parseDurationToMilliseconds = (value: string): number => {
   return amount * 24 * 60 * 60 * 1000;
 };
 
+/** Сравнивает открытый пароль с bcrypt-хешем */
 export class BcryptPasswordService implements PasswordService {
   async compare(plainText: string, hash: string): Promise<boolean> {
     return compare(plainText, hash);
   }
 }
 
+/** Подписывает и верифицирует JWT access/refresh токены */
 export class JwtTokenService implements TokenService {
   constructor(
     private readonly options: {
@@ -65,6 +68,7 @@ export class JwtTokenService implements TokenService {
     return this.parseToken(token, this.options.refreshSecret);
   }
 
+  /** Верифицирует токен и проверяет наличие обязательных полей в payload */
   private parseToken(token: string, secret: string): AuthTokenPayload {
     const payload = jwt.verify(token, secret) as JwtPayload & Partial<AuthTokenPayload>;
 

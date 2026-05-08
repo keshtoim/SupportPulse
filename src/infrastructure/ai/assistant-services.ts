@@ -8,14 +8,17 @@ type RankedArticle = {
   score: number;
 };
 
+// Ключевые слова, по которым определяется запрос на подключение живого оператора
 const operatorRequestPatterns = ["оператор", "человек", "менеджер", "специалист", "живой", "сотрудник"];
 
+/** Разбивает строку на токены (слова), отфильтровывая короткие */
 const tokenize = (value: string): string[] =>
   value
     .toLowerCase()
     .split(/[^\p{L}\p{N}]+/u)
     .filter((token) => token.length > 2);
 
+/** Проверяет, содержит ли сообщение запрос на оператора */
 const includesOperatorRequest = (value: string): boolean => {
   const normalizedValue = value.toLowerCase();
   return operatorRequestPatterns.some((pattern) => normalizedValue.includes(pattern));
@@ -33,6 +36,7 @@ const tokenMatches = (queryToken: string, articleTokens: Set<string>): boolean =
   return false;
 };
 
+/** Ранжирует статьи FAQ по количеству совпадающих токенов с вопросом */
 const rankArticles = (question: string, articles: FaqArticle[]): RankedArticle[] => {
   const questionTokens = tokenize(question);
 
@@ -49,6 +53,7 @@ const rankArticles = (question: string, articles: FaqArticle[]): RankedArticle[]
     .sort((left, right) => right.score - left.score);
 };
 
+/** Извлекает текст из ответа LLM (строка или массив чанков) */
 const extractResponseText = (response: Awaited<ReturnType<ChatOpenAI["invoke"]>>): string => {
   if (typeof response.content === "string") {
     return response.content.trim();
@@ -60,12 +65,22 @@ const extractResponseText = (response: Awaited<ReturnType<ChatOpenAI["invoke"]>>
     .trim();
 };
 
+/** Форматирует последние 6 сообщений истории для контекста LLM */
 const mapRecentMessages = (history: Message[]) =>
   history
     .slice(-6)
     .map((message) => `${message.senderType}: ${message.content}`)
     .join("\n");
 
+/**
+ * AI-сервис поддержки на основе RAG поверх FAQ.
+ * Если OpenAI ключ не задан — работает в режиме fallback (возвращает лучшую статью напрямую).
+ * Логика решения:
+ *  1. Запрос оператора → escalate
+ *  2. Нет совпадений в FAQ → escalate (low_confidence)
+ *  3. Вопрос слишком короткий → clarify
+ *  4. Иначе → answer (через LLM или fallback)
+ */
 export class FaqRagAnswerService implements SupportAnswerService {
   private readonly llm?: ChatOpenAI;
 
@@ -109,6 +124,7 @@ export class FaqRagAnswerService implements SupportAnswerService {
     const matchedArticleIds = topArticles.map((item) => item.article.id);
     const fallbackAnswer = topArticles[0].article.answer;
 
+    // Режим без LLM: возвращаем лучшую статью напрямую
     if (!this.llm) {
       return {
         kind: "answer" as const,
@@ -154,6 +170,7 @@ export class FaqRagAnswerService implements SupportAnswerService {
         confidence: Math.min(0.98, 0.45 + topArticles[0].score / 4)
       };
     } catch {
+      // При ошибке LLM — деградируем к fallback-ответу
       return {
         kind: "answer" as const,
         message: fallbackAnswer,

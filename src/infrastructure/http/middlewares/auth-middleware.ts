@@ -2,6 +2,7 @@ import type { NextFunction, Request, RequestHandler, Response } from "express";
 import type { TokenService, UserRepository } from "../../../application/ports";
 import { AppError, toPublicUser, type AuthenticatedUser, type UserRole } from "../../../domain/model";
 
+// Расширяем тип Request Express для хранения авторизованного пользователя
 declare global {
   namespace Express {
     interface Request {
@@ -15,6 +16,10 @@ type AuthMiddlewareDependencies = {
   userRepository: UserRepository;
 };
 
+/**
+ * Middleware авторизации: извлекает Bearer-токен, верифицирует его и
+ * загружает пользователя из хранилища. Помещает результат в request.authUser.
+ */
 export const createAuthMiddleware =
   (dependencies: AuthMiddlewareDependencies): RequestHandler =>
   async (request: Request, _: Response, next: NextFunction) => {
@@ -40,6 +45,7 @@ export const createAuthMiddleware =
     }
   };
 
+/** Middleware проверки ролей — должен стоять после createAuthMiddleware */
 export const requireRoles =
   (roles: UserRole[]): RequestHandler =>
   (request: Request, _: Response, next: NextFunction) => {
@@ -54,6 +60,7 @@ export const requireRoles =
     return next();
   };
 
+/** Извлекает authUser из запроса; выбрасывает, если middleware не был применён */
 export const getRequiredAuthUser = (request: Request): AuthenticatedUser => {
   if (!request.authUser) {
     throw new AppError("Пользователь не авторизован.", 401, "UNAUTHORIZED");
