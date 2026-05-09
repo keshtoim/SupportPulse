@@ -2,10 +2,8 @@ import { useEffect, useMemo, useState } from 'preact/hooks'
 import {
   apiRequest,
   formatDateTime,
-  senderLabel,
   statusLabel,
   type AdminScreen,
-  type FaqArticle,
   type MessageRecord,
   type PostMessageResponse,
   type SessionMessagesResponse,
@@ -40,13 +38,10 @@ export function WidgetExperience({
   const [widgetData, setWidgetData] = useState<WidgetPayload | null>(null)
   const [widgetError, setWidgetError] = useState<string | null>(null)
   const [loadingWidget, setLoadingWidget] = useState(true)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [searchResults, setSearchResults] = useState<FaqArticle[]>([])
-  const [searching, setSearching] = useState(false)
-  const [customerName, setCustomerName] = useState('')
-  const [customerEmail, setCustomerEmail] = useState('')
+  const customerName = ''
+  const customerEmail = ''
   const [sessionId, setSessionId] = useState<string | null>(null)
-  const [session, setSession] = useState<SessionRecord | null>(null)
+  const [, setSession] = useState<SessionRecord | null>(null)
   const [ticket, setTicket] = useState<TicketRecord | null>(null)
   const [messages, setMessages] = useState<MessageRecord[]>([])
   const [draft, setDraft] = useState('')
@@ -91,7 +86,15 @@ export function WidgetExperience({
 
     setSession(payload.session)
     setTicket(payload.ticket)
-    setMessages(payload.messages)
+    setMessages(prev => {
+      const prevIds = new Set(prev.map(m => m.id))
+      const hasNewReply = payload.messages.some(m => !prevIds.has(m.id) && m.senderType !== 'client')
+      if (hasNewReply) {
+        setTyping(false)
+        setSending(false)
+      }
+      return payload.messages
+    })
   }
 
   // Polling: клиент видит ответы оператора без F5
@@ -117,28 +120,6 @@ export function WidgetExperience({
     setSessionId(created.id)
     setSession(created)
     return created.id
-  }
-
-  const handleFaqSearch = async (event: Event) => {
-    event.preventDefault()
-
-    if (searchQuery.trim().length < 2) {
-      setSearchResults([])
-      return
-    }
-
-    try {
-      setSearching(true)
-      setWidgetError(null)
-      const result = await apiRequest<FaqArticle[]>(
-        `/public/tenants/${tenantId}/faq/search?q=${encodeURIComponent(searchQuery.trim())}`,
-      )
-      setSearchResults(result)
-    } catch (error) {
-      setWidgetError((error as Error).message)
-    } finally {
-      setSearching(false)
-    }
   }
 
   const handleSendMessage = async (event: Event) => {
@@ -319,25 +300,6 @@ export function WidgetExperience({
                   ))}
                 </div>
 
-                {/* FAQ поиск */}
-                {searchResults.length > 0 && (
-                  <section class="search-list">
-                    {searchResults.map((article) => (
-                      <button
-                        class="faq-item"
-                        type="button"
-                        key={article.id}
-                        onClick={() => {
-                          setDraft(article.question)
-                          onScreenChange('chat')
-                        }}
-                      >
-                        <strong>{article.question}</strong>
-                        <span>{article.answer}</span>
-                      </button>
-                    ))}
-                  </section>
-                )}
               </section>
 
               {/* Таб-бар — только на главном экране */}
