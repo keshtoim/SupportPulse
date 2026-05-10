@@ -14,6 +14,7 @@ type CompanyServiceDependencies = {
 export class CompanyAdministrationApplicationService {
   constructor(private readonly dependencies: CompanyServiceDependencies) {}
 
+  /** Возвращает базу знаний: темы с вложенными статьями FAQ */
   async getKnowledgeBase(actor: AuthenticatedUser) {
     ensureRole(actor, companyAdminRoles);
     const tenantId = actor.tenantId as string;
@@ -26,6 +27,7 @@ export class CompanyAdministrationApplicationService {
     }));
   }
 
+  /** Создаёт новую статью FAQ под указанной темой */
   async createFaq(actor: AuthenticatedUser, payload: { topicId: string; question: string; answer: string }) {
     ensureRole(actor, companyAdminRoles);
     const tenantId = actor.tenantId as string;
@@ -62,6 +64,7 @@ export class CompanyAdministrationApplicationService {
     return created;
   }
 
+  /** Обновляет вопрос и ответ существующей статьи FAQ */
   async updateFaq(actor: AuthenticatedUser, faqId: string, payload: { question: string; answer: string }) {
     ensureRole(actor, companyAdminRoles);
     const tenantId = actor.tenantId as string;
@@ -92,6 +95,7 @@ export class CompanyAdministrationApplicationService {
     return updated;
   }
 
+  /** Возвращает текущую конфигурацию виджета компании */
   async getWidgetConfig(actor: AuthenticatedUser) {
     ensureRole(actor, companyAdminRoles);
     const config = await this.dependencies.widgetConfigRepository.getByTenantId(actor.tenantId as string);
@@ -103,6 +107,7 @@ export class CompanyAdministrationApplicationService {
     return config;
   }
 
+  /** Сохраняет конфигурацию виджета (upsert: создаёт, если ещё нет) */
   async updateWidgetConfig(
     actor: AuthenticatedUser,
     payload: Pick<WidgetConfig, "brandColor" | "welcomeMessage" | "toneOfVoice" | "showPrivacyNotice" | "privacyNotice">

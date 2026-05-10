@@ -31,11 +31,14 @@ type WidgetServiceDependencies = {
 export class WidgetSupportApplicationService {
   constructor(private readonly dependencies: WidgetServiceDependencies) {}
 
+  /** Возвращает публичные данные виджета: тенант, конфиг, темы с вложенными статьями FAQ */
   async getWidget(tenantId: string) {
     const tenant = await ensureTenantActive(this.dependencies.tenantRepository, tenantId);
-    const widgetConfig = await this.dependencies.widgetConfigRepository.getByTenantId(tenantId);
-    const topics = await this.dependencies.topicRepository.listByTenant(tenantId);
-    const articles = await this.dependencies.faqRepository.listByTenant(tenantId);
+    const [widgetConfig, topics, articles] = await Promise.all([
+      this.dependencies.widgetConfigRepository.getByTenantId(tenantId),
+      this.dependencies.topicRepository.listByTenant(tenantId),
+      this.dependencies.faqRepository.listByTenant(tenantId),
+    ]);
 
     if (!widgetConfig) {
       throw new AppError("Конфигурация виджета не найдена.", 404, "WIDGET_CONFIG_NOT_FOUND");
@@ -47,6 +50,7 @@ export class WidgetSupportApplicationService {
         name: tenant.name
       },
       widgetConfig,
+      aiEnabled: this.dependencies.answerService.isLlmEnabled(),
       topics: topics.map((topic) => ({
         ...topic,
         articles: articles.filter((article) => article.topicId === topic.id)
@@ -54,11 +58,13 @@ export class WidgetSupportApplicationService {
     };
   }
 
+  /** Полнотекстовый поиск по FAQ тенанта */
   async searchFaq(tenantId: string, query: string) {
     await ensureTenantActive(this.dependencies.tenantRepository, tenantId);
     return this.dependencies.faqRepository.searchByTenant(tenantId, query);
   }
 
+  /** Возвращает сообщения сессии вместе с привязанным тикетом (если есть) */
   async getSessionMessages(tenantId: string, sessionId: string) {
     await ensureTenantActive(this.dependencies.tenantRepository, tenantId);
     const session = await this.dependencies.sessionRepository.getById(sessionId);
@@ -67,8 +73,10 @@ export class WidgetSupportApplicationService {
       throw new AppError("Сессия не найдена.", 404, "SESSION_NOT_FOUND");
     }
 
-    const ticket = await this.dependencies.ticketRepository.findBySessionId(sessionId);
-    const messages = await this.dependencies.messageRepository.listBySession(sessionId);
+    const [ticket, messages] = await Promise.all([
+      this.dependencies.ticketRepository.findBySessionId(sessionId),
+      this.dependencies.messageRepository.listBySession(sessionId),
+    ]);
 
     return {
       session,
@@ -77,6 +85,7 @@ export class WidgetSupportApplicationService {
     };
   }
 
+  /** Создаёт новую сессию диалога в состоянии ai_active */
   async startSession(tenantId: string, payload: { customerName?: string; customerEmail?: string }) {
     await ensureTenantActive(this.dependencies.tenantRepository, tenantId);
     const now = this.dependencies.clock.now().toISOString();
@@ -95,10 +104,17 @@ export class WidgetSupportApplicationService {
     return this.dependencies.sessionRepository.create(session);
   }
 
+  /**
+   * Основная логика обработки сообщения клиента:
+   * - Если оператор уже подключён — сообщение ставится в очередь к нему
+   * - Иначе AI принимает решение: ответить / уточнить / эскалировать
+   */
   async postClientMessage(tenantId: string, sessionId: string, content: string) {
-    const tenant = await ensureTenantActive(this.dependencies.tenantRepository, tenantId);
-    const widgetConfig = await this.dependencies.widgetConfigRepository.getByTenantId(tenantId);
-    const session = await this.dependencies.sessionRepository.getById(sessionId);
+    const [tenant, widgetConfig, session] = await Promise.all([
+      ensureTenantActive(this.dependencies.tenantRepository, tenantId),
+      this.dependencies.widgetConfigRepository.getByTenantId(tenantId),
+      this.dependencies.sessionRepository.getById(sessionId),
+    ]);
 
     if (!widgetConfig) {
       throw new AppError("Конфигурация виджета не найдена.", 404, "WIDGET_CONFIG_NOT_FOUND");
@@ -124,6 +140,7 @@ export class WidgetSupportApplicationService {
       createdAt: this.dependencies.clock.now().toISOString()
     });
 
+    // Если сессия уже передана оператору — AI не отвечает, сообщение идёт в тикет
     if (session.state !== "ai_active" && existingTicket) {
       const queuedReply = await this.dependencies.messageRepository.create({
         id: this.dependencies.idGenerator.next("msg"),
@@ -143,8 +160,10 @@ export class WidgetSupportApplicationService {
       };
     }
 
-    const history = await this.dependencies.messageRepository.listBySession(session.id);
-    const faqArticles = await this.dependencies.faqRepository.listByTenant(tenantId);
+    const [history, faqArticles] = await Promise.all([
+      this.dependencies.messageRepository.listBySession(session.id),
+      this.dependencies.faqRepository.listByTenant(tenantId),
+    ]);
     const replyDecision = await this.dependencies.answerService.answer({
       tenant,
       widgetConfig,
@@ -173,7 +192,7 @@ export class WidgetSupportApplicationService {
         }
       });
 
-      await addAuditEntry(this.dependencies.auditLogRepository, this.dependencies.idGenerator, this.dependencies.clock, {
+      addAuditEntry(this.dependencies.auditLogRepository, this.dependencies.idGenerator, this.dependencies.clock, {
         tenantId,
         actorUserId: null,
         action: "ai_answered",
@@ -183,7 +202,7 @@ export class WidgetSupportApplicationService {
           matchedArticleIds: replyDecision.matchedArticleIds,
           confidence: replyDecision.confidence
         }
-      });
+      }).catch(() => {});
 
       return {
         decision: "answer",
@@ -216,6 +235,7 @@ export class WidgetSupportApplicationService {
       };
     }
 
+    // AI решил эскалировать (низкая уверенность или явный запрос оператора)
     return this.escalateSessionToOperator(session, {
       requestedBy: "ai",
       reason: replyDecision.reason,
@@ -224,6 +244,7 @@ export class WidgetSupportApplicationService {
     });
   }
 
+  /** Явная эскалация к оператору по запросу клиента */
   async requestOperator(
     tenantId: string,
     sessionId: string,
@@ -241,6 +262,7 @@ export class WidgetSupportApplicationService {
       throw new AppError("Сессия не найдена.", 404, "SESSION_NOT_FOUND");
     }
 
+    // Обновляем контактные данные клиента, если переданы
     const nextSession = await this.dependencies.sessionRepository.update({
       ...session,
       customerName: payload.customerName?.trim() || session.customerName,
@@ -255,6 +277,10 @@ export class WidgetSupportApplicationService {
     });
   }
 
+  /**
+   * Общая логика эскалации: создаёт тикет и переводит сессию в waiting_operator.
+   * Если активный тикет уже существует — не создаёт дубликат.
+   */
   private async escalateSessionToOperator(
     session: DialogueSession,
     escalation: {
@@ -266,6 +292,7 @@ export class WidgetSupportApplicationService {
   ) {
     const existingTicket = await this.dependencies.ticketRepository.findBySessionId(session.id);
 
+    // Защита от двойной эскалации
     if (existingTicket && existingTicket.status !== "closed") {
       const reminderMessage = await this.dependencies.messageRepository.create({
         id: this.dependencies.idGenerator.next("msg"),
@@ -299,13 +326,15 @@ export class WidgetSupportApplicationService {
       updatedAt: now
     };
 
-    const updatedSession = await this.dependencies.sessionRepository.update({
-      ...session,
-      state: "waiting_operator",
-      updatedAt: now
-    });
+    const [updatedSession, savedTicket] = await Promise.all([
+      this.dependencies.sessionRepository.update({
+        ...session,
+        state: "waiting_operator",
+        updatedAt: now
+      }),
+      this.dependencies.ticketRepository.create(ticket),
+    ]);
 
-    const savedTicket = await this.dependencies.ticketRepository.create(ticket);
     const replyMessage = await this.dependencies.messageRepository.create({
       id: this.dependencies.idGenerator.next("msg"),
       sessionId: session.id,
@@ -318,7 +347,7 @@ export class WidgetSupportApplicationService {
       }
     });
 
-    await addAuditEntry(this.dependencies.auditLogRepository, this.dependencies.idGenerator, this.dependencies.clock, {
+    addAuditEntry(this.dependencies.auditLogRepository, this.dependencies.idGenerator, this.dependencies.clock, {
       tenantId: session.tenantId,
       actorUserId: null,
       action: "ticket_created",
@@ -328,7 +357,7 @@ export class WidgetSupportApplicationService {
         requestedBy: escalation.requestedBy,
         reason: escalation.reason
       }
-    });
+    }).catch(() => {});
 
     return {
       decision: "escalate",

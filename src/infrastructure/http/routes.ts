@@ -84,6 +84,8 @@ export const createApiRouter = (context: ApplicationContext) => {
     userRepository: context.userRepository
   });
 
+  // --- Health check ---
+
   router.get(
     "/health",
     asyncHandler(async (_, response) => {
@@ -94,6 +96,8 @@ export const createApiRouter = (context: ApplicationContext) => {
       });
     })
   );
+
+  // --- Auth ---
 
   router.post(
     "/auth/login",
@@ -112,6 +116,8 @@ export const createApiRouter = (context: ApplicationContext) => {
       response.json(result);
     })
   );
+
+  // --- Public widget API (без авторизации) ---
 
   router.get(
     "/public/tenants/:tenantId/widget",
@@ -192,6 +198,8 @@ export const createApiRouter = (context: ApplicationContext) => {
     })
   );
 
+  // --- Operator API (operator, supervisor, company_admin, platform_admin) ---
+
   const operatorRouter = Router();
   operatorRouter.use(authMiddleware, requireRoles(["operator", "supervisor", "company_admin", "platform_admin"]));
   operatorRouter.get(
@@ -239,6 +247,8 @@ export const createApiRouter = (context: ApplicationContext) => {
   );
   router.use("/operator", operatorRouter);
 
+  // --- Company admin API (company_admin, platform_admin) ---
+
   const companyRouter = Router();
   companyRouter.use(authMiddleware, requireRoles(["company_admin"]));
   companyRouter.get(
@@ -285,6 +295,8 @@ export const createApiRouter = (context: ApplicationContext) => {
     })
   );
   router.use("/company", companyRouter);
+
+  // --- Platform admin API (platform_admin only) ---
 
   const platformRouter = Router();
   platformRouter.use(authMiddleware, requireRoles(["platform_admin"]));

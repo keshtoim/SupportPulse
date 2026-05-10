@@ -1,8 +1,13 @@
+// Роли пользователей в системе
 export type UserRole = "operator" | "supervisor" | "company_admin" | "platform_admin";
+// Статусы тикета поддержки
 export type TicketStatus = "new" | "in_progress" | "waiting_client" | "closed";
+// Состояния сессии диалога клиента
 export type SessionState = "ai_active" | "waiting_operator" | "operator_connected" | "closed";
+// Типы отправителей сообщений
 export type SenderType = "client" | "ai" | "operator" | "system";
 
+/** Организация-клиент, использующая платформу */
 export interface Tenant {
   id: string;
   name: string;
@@ -10,6 +15,7 @@ export interface Tenant {
   createdAt: string;
 }
 
+/** Пользователь системы (оператор, администратор компании и т.д.) */
 export interface User {
   id: string;
   tenantId: string | null;
@@ -21,6 +27,7 @@ export interface User {
   createdAt: string;
 }
 
+/** Тематическая категория FAQ */
 export interface Topic {
   id: string;
   tenantId: string;
@@ -28,6 +35,7 @@ export interface Topic {
   createdAt: string;
 }
 
+/** Статья базы знаний */
 export interface FaqArticle {
   id: string;
   topicId: string;
@@ -38,6 +46,7 @@ export interface FaqArticle {
   updatedAt: string;
 }
 
+/** Настройки виджета для конкретного тенанта */
 export interface WidgetConfig {
   id: string;
   tenantId: string;
@@ -50,17 +59,20 @@ export interface WidgetConfig {
   updatedAt: string;
 }
 
+/** Сессия диалога клиента с AI или оператором */
 export interface DialogueSession {
   id: string;
   tenantId: string;
   state: SessionState;
   customerName: string | null;
   customerEmail: string | null;
+  /** ID статей FAQ, использованных в последнем AI-ответе */
   lastKnowledgeArticleIds: string[];
   createdAt: string;
   updatedAt: string;
 }
 
+/** Сообщение в рамках сессии или тикета */
 export interface Message {
   id: string;
   sessionId: string;
@@ -71,6 +83,7 @@ export interface Message {
   metadata?: Record<string, unknown>;
 }
 
+/** Тикет поддержки, создаётся при эскалации к оператору */
 export interface Ticket {
   id: string;
   tenantId: string;
@@ -84,6 +97,7 @@ export interface Ticket {
   updatedAt: string;
 }
 
+/** Запись журнала аудита */
 export interface AuditLog {
   id: string;
   tenantId: string | null;
@@ -95,8 +109,10 @@ export interface AuditLog {
   createdAt: string;
 }
 
+/** Публичное представление пользователя без хеша пароля */
 export type PublicUser = Omit<User, "passwordHash">;
 
+/** Данные авторизованного пользователя, хранимые в JWT и прикреплённые к запросу */
 export interface AuthenticatedUser {
   id: string;
   tenantId: string | null;
@@ -105,6 +121,7 @@ export interface AuthenticatedUser {
   role: UserRole;
 }
 
+/** Входные данные для AI-сервиса при формировании ответа */
 export interface SupportReplyContext {
   tenant: Tenant;
   widgetConfig: WidgetConfig;
@@ -113,6 +130,7 @@ export interface SupportReplyContext {
   history: Message[];
 }
 
+/** Решение AI: ответить на основе FAQ / запросить уточнение / эскалировать к оператору */
 export type SupportReplyDecision =
   | {
       kind: "answer";
@@ -130,6 +148,7 @@ export type SupportReplyDecision =
       reason: string;
     };
 
+/** Базовый класс ошибок приложения с HTTP-кодом и машиночитаемым кодом */
 export class AppError extends Error {
   constructor(
     message: string,
@@ -142,6 +161,7 @@ export class AppError extends Error {
   }
 }
 
+/** Возвращает пользователя без поля passwordHash */
 export const toPublicUser = (user: User): PublicUser => {
   const { passwordHash: _, ...rest } = user;
   return rest;

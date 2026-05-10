@@ -1,3 +1,8 @@
+/**
+ * Генерирует JS-сниппет для встраивания виджета на сторонний сайт.
+ * Скрипт создаёт кнопку (#sp-btn) и iframe (#sp-frame) с анимацией.
+ * Запускается один раз (guard window.__SupportPulse).
+ */
 export function generateEmbedScript(tenantId: string, baseUrl: string, brandColor: string): string {
   const t = JSON.stringify(tenantId);
   const b = JSON.stringify(baseUrl);

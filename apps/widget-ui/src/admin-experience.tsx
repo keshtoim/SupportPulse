@@ -49,7 +49,7 @@ export function AdminExperience({
   const [settingsNotice, setSettingsNotice] = useState<string | null>(null)
 
   const adminTitle =
-    screen === 'dashboard' ? 'Главная' : screen === 'chats' ? 'Очередь' : screen === 'settings' ? 'Настройки' : 'Профиль'
+    screen === 'dashboard' ? 'Главная' : screen === 'chats' ? 'Очередь' : screen === 'settings' ? 'Настройки' : screen === 'news' ? 'Новости' : 'Профиль'
   const canManageCompany = auth?.user.role === 'company_admin'
   const selectedTicket = tickets.find((ticket) => ticket.id === selectedTicketId) ?? null
 
@@ -343,13 +343,14 @@ export function AdminExperience({
             ))}
           </div>
 
-          <button class="dashboard-wide-tile" type="button" onClick={() => onScreenChange('chats')}>
+          <button class="dashboard-wide-tile" type="button" onClick={() => onScreenChange('news')}>
             <div class="tile-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16l4-4h10a2 2 0 0 0 2-2V8z" /><line x1="9" y1="9" x2="15" y2="9" /><line x1="9" y1="13" x2="13" y2="13" />
+                <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2" />
+                <line x1="12" y1="7" x2="18" y2="7" /><line x1="12" y1="11" x2="18" y2="11" /><line x1="12" y1="15" x2="16" y2="15" />
               </svg>
             </div>
-            <span>Открыть активные тикеты</span>
+            <span>Новости</span>
           </button>
         </section>
 
@@ -694,6 +695,25 @@ export function AdminExperience({
                     <p>Тон: {widgetConfig.toneOfVoice}</p>
                   </article>
                 )}
+              </div>
+            )}
+
+            {screen === 'news' && (
+              <div class="admin-page">
+                <div class="news-feed">
+                  <article class="news-card">
+                    <div class="news-card-header">
+                      <span class="news-badge">Запуск</span>
+                      <time class="news-date">10 мая 2025</time>
+                    </div>
+                    <h3 class="news-title">Ура, мы наконец-то запустились! 🎉</h3>
+                    <p class="news-body">
+                      SupportPulse официально открывает двери. Теперь вы можете принимать обращения
+                      клиентов, отвечать на них с помощью AI или подключаться к чату вручную.
+                      Спасибо всем, кто ждал — это только начало.
+                    </p>
+                  </article>
+                </div>
               </div>
             )}
 

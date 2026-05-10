@@ -1,5 +1,5 @@
 export type WidgetScreen = 'home' | 'chat'
-export type AdminScreen = 'dashboard' | 'chats' | 'settings' | 'profile'
+export type AdminScreen = 'dashboard' | 'chats' | 'settings' | 'profile' | 'news'
 export type AppMode = 'widget' | 'admin'
 export type SenderType = 'client' | 'ai' | 'operator' | 'system'
 export type UserRole = 'operator' | 'supervisor' | 'company_admin' | 'platform_admin'
@@ -36,6 +36,7 @@ export type WidgetPayload = {
     name: string
   }
   widgetConfig: WidgetConfig
+  aiEnabled: boolean
   topics: Topic[]
 }
 
