@@ -9,7 +9,7 @@ import { FaqRagAnswerService } from "../infrastructure/ai/assistant-services";
 import { BcryptPasswordService, JwtTokenService } from "../infrastructure/auth/security";
 import { SystemClock, UuidIdGenerator, createInMemoryRepositories } from "../infrastructure/persistence/in-memory/app-memory";
 import { createSupabaseClient, SupabaseIdGenerator } from "../infrastructure/persistence/supabase/client";
-import { createSupabaseRepositories } from "../infrastructure/persistence/supabase/repositories";
+import { createSupabaseRepositories, SupabaseAuditLogRepository } from "../infrastructure/persistence/supabase/repositories";
 
 /**
  * Точка сборки всех зависимостей приложения (DI-контейнер).
@@ -23,7 +23,11 @@ export const createApplicationContext = (env: AppEnv) => {
   // Если заданы Supabase-переменные — используем Supabase, иначе in-memory (для разработки)
   const useSupabase = Boolean(env.supabaseUrl && env.supabaseServiceRoleKey);
   const repositories = useSupabase
-    ? createSupabaseRepositories(createSupabaseClient(env))
+    ? {
+        ...createSupabaseRepositories(createSupabaseClient(env)),
+        // Отдельный клиент для audit log: его fire-and-forget INSERT не блокирует основной connection pool
+        auditLogRepository: new SupabaseAuditLogRepository(createSupabaseClient(env))
+      }
     : createInMemoryRepositories();
   const idGenerator = useSupabase ? new SupabaseIdGenerator() : new UuidIdGenerator();
   const clock = new SystemClock();

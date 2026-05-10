@@ -54,7 +54,7 @@ export const createApp = (context: ApplicationContext) => {
     }
 
     const unknownError = error as Error;
-    context.logger.error({ error: unknownError }, "Непредвиденная ошибка backend.");
+    context.logger.error({ err: unknownError, message: unknownError?.message }, "Непредвиденная ошибка backend.");
     response.status(500).json({
       error: "INTERNAL_SERVER_ERROR",
       message: "На сервере произошла непредвиденная ошибка."
