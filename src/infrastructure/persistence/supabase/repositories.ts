@@ -225,9 +225,23 @@ export class SupabaseMessageRepository implements MessageRepository {
   }
 
   async create(message: Message): Promise<Message> {
-    const { data, error } = await this.db.from("messages").insert({ message_id: message.id, session_id: message.sessionId, ticket_id: message.ticketId, sender_type: message.senderType, content: message.content, metadata: message.metadata ?? {}, created_at: message.createdAt }).select().single();
-    if (error) throw new Error(error.message);
-    return toMessage(data as MessageRow);
+    const isTransient = (msg: string) =>
+      msg.includes("AbortError") || msg.includes("terminated") || msg.includes("ECONNRESET") || msg.includes("fetch failed");
+
+    for (let attempt = 0; attempt <= 2; attempt++) {
+      const { data, error } = await this.db
+        .from("messages")
+        .insert({ message_id: message.id, session_id: message.sessionId, ticket_id: message.ticketId, sender_type: message.senderType, content: message.content, metadata: message.metadata ?? {}, created_at: message.createdAt })
+        .select()
+        .single();
+      if (!error) return toMessage(data as MessageRow);
+      if (attempt < 2 && isTransient(error.message)) {
+        await new Promise<void>((resolve) => setTimeout(resolve, 2000 * (attempt + 1)));
+        continue;
+      }
+      throw new Error(error.message);
+    }
+    throw new Error("Не удалось сохранить сообщение после нескольких попыток.");
   }
 }
 

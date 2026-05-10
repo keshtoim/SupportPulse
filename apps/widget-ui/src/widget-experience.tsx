@@ -158,6 +158,7 @@ export function WidgetExperience({
     } catch (error) {
       setMessages(prev => prev.filter(m => m.id !== tempId))
       setChatError((error as Error).message)
+      setDraft(content)
     } finally {
       setTyping(false)
       setSending(false)
