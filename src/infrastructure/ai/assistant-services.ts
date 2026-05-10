@@ -112,9 +112,8 @@ export class FaqRagAnswerService implements SupportAnswerService {
 
     if (topArticles.length === 0) {
       return {
-        kind: "escalate" as const,
-        message: "Не хочу вводить в заблуждение. Передаю вопрос оператору, чтобы вы получили точный ответ.",
-        reason: "low_confidence"
+        kind: "clarify" as const,
+        message: "Не нашёл подходящего ответа в базе знаний. Попробуйте уточнить вопрос — или мне позвать оператора?"
       };
     }
 
