@@ -335,9 +335,25 @@ export function WidgetExperience({
             <>
               <section class="screen-body chat-screen">
                 <div class="chat-status-bar">
-                  <span class={`status-pill ${ticket ? 'operator' : 'ai'}`}>
-                    {ticket ? statusLabel[ticket.status] : 'AI отвечает'}
-                  </span>
+                  <div class="status-left">
+                    <span class={`status-pill ${ticket ? 'operator' : widgetData?.aiEnabled ? 'ai' : 'ai-fallback'}`}>
+                      {ticket ? statusLabel[ticket.status] : widgetData?.aiEnabled ? 'AI отвечает' : 'FAQ-режим'}
+                    </span>
+                    {!ticket && (
+                      <span
+                        class="ai-status-hint"
+                        data-tooltip={widgetData?.aiEnabled
+                          ? 'AI подключён — ответы точнее и адаптированы под ваш вопрос'
+                          : 'AI не подключён — ответы берутся напрямую из базы знаний'}
+                      >
+                        <svg viewBox="0 0 16 16" width="14" height="14" fill="none">
+                          <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.4" />
+                          <path d="M8 7v4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
+                          <circle cx="8" cy="5.25" r="0.8" fill="currentColor" />
+                        </svg>
+                      </span>
+                    )}
+                  </div>
                   <button class="secondary-link" type="button" disabled={sending} onClick={handleEscalate}>
                     Позвать оператора
                   </button>

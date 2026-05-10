@@ -36,6 +36,7 @@ export type WidgetPayload = {
     name: string
   }
   widgetConfig: WidgetConfig
+  aiEnabled: boolean
   topics: Topic[]
 }
 

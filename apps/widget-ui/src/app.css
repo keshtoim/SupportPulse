@@ -1220,6 +1220,51 @@ html.embed-mode .widget-shell {
   color: #0a7c47;
 }
 
+.status-pill.ai-fallback {
+  background: #fff3de;
+  color: #9a5b00;
+}
+
+.status-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ai-status-hint {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  color: #8a93a8;
+  cursor: help;
+}
+
+.ai-status-hint::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1a2132;
+  color: #fff;
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+  white-space: normal;
+  width: 190px;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+  z-index: 10;
+}
+
+.ai-status-hint:hover::after {
+  opacity: 1;
+}
+
 .alert-banner {
   margin: 0 16px;
   padding: 12px 14px;

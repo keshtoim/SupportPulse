@@ -50,6 +50,7 @@ export class WidgetSupportApplicationService {
         name: tenant.name
       },
       widgetConfig,
+      aiEnabled: this.dependencies.answerService.isLlmEnabled(),
       topics: topics.map((topic) => ({
         ...topic,
         articles: articles.filter((article) => article.topicId === topic.id)

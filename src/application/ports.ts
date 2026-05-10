@@ -56,6 +56,8 @@ export interface TokenService {
 /** AI-сервис, принимающий вопрос и контекст, возвращающий решение об ответе */
 export interface SupportAnswerService {
   answer(context: SupportReplyContext): Promise<SupportReplyDecision>;
+  /** true — LLM подключён; false — работает в fallback-режиме по FAQ */
+  isLlmEnabled(): boolean;
 }
 
 // --- Репозитории — абстракции над хранилищем данных ---

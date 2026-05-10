@@ -94,6 +94,10 @@ export class FaqRagAnswerService implements SupportAnswerService {
     }
   }
 
+  isLlmEnabled(): boolean {
+    return !!this.llm;
+  }
+
   async answer(context: SupportReplyContext) {
     if (includesOperatorRequest(context.question)) {
       return {
