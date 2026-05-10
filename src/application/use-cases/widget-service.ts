@@ -192,7 +192,7 @@ export class WidgetSupportApplicationService {
         }
       });
 
-      void addAuditEntry(this.dependencies.auditLogRepository, this.dependencies.idGenerator, this.dependencies.clock, {
+      addAuditEntry(this.dependencies.auditLogRepository, this.dependencies.idGenerator, this.dependencies.clock, {
         tenantId,
         actorUserId: null,
         action: "ai_answered",
@@ -202,7 +202,7 @@ export class WidgetSupportApplicationService {
           matchedArticleIds: replyDecision.matchedArticleIds,
           confidence: replyDecision.confidence
         }
-      });
+      }).catch(() => {});
 
       return {
         decision: "answer",
@@ -347,7 +347,7 @@ export class WidgetSupportApplicationService {
       }
     });
 
-    void addAuditEntry(this.dependencies.auditLogRepository, this.dependencies.idGenerator, this.dependencies.clock, {
+    addAuditEntry(this.dependencies.auditLogRepository, this.dependencies.idGenerator, this.dependencies.clock, {
       tenantId: session.tenantId,
       actorUserId: null,
       action: "ticket_created",
@@ -357,7 +357,7 @@ export class WidgetSupportApplicationService {
         requestedBy: escalation.requestedBy,
         reason: escalation.reason
       }
-    });
+    }).catch(() => {});
 
     return {
       decision: "escalate",

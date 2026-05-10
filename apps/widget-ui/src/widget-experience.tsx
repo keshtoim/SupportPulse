@@ -91,7 +91,6 @@ export function WidgetExperience({
       const hasNewReply = payload.messages.some(m => !prevIds.has(m.id) && m.senderType !== 'client')
       if (hasNewReply) {
         setTyping(false)
-        setSending(false)
       }
       return payload.messages
     })
