@@ -1,155 +1,134 @@
 # SupportPulse — Запуск и настройка
 
-## Быстрый старт
+## Шаг 1 — Установи нужные программы
 
-```bash
-# 1. Клонировать репозиторий
+Если программа уже установлена — пропусти этот шаг.
+
+### Git
+Нужен для скачивания кода.
+1. Зайди на https://git-scm.com/download/win и скачай установщик
+2. Запусти его и нажимай **Next** до конца — настройки по умолчанию подходят
+
+### Node.js
+Нужен для запуска проекта.
+1. Зайди на https://nodejs.org и скачай версию **LTS** (левая кнопка)
+2. Запусти установщик и нажимай **Next** до конца
+
+### Проверка установки
+Открой VS Code, нажми **Ctrl+`** (кнопка под Escape) — откроется терминал.
+Введи команды и нажимай Enter после каждой:
+
+```
+git --version
+node --version
+npm --version
+```
+
+Если каждая команда вывела номер версии (например, `v20.11.0`) — всё установлено правильно.
+
+---
+
+## Шаг 2 — Скачай проект
+
+В том же терминале VS Code:
+
+```
 git clone https://github.com/keshtoim/SupportPulse.git
-cd SupportPulse
-
-# 2. Установить зависимости
-npm install
-npm --prefix apps/widget-ui install
-
-# 3. Создать файлы окружения
-cp .env.example .env
-cp apps/widget-ui/.env.example apps/widget-ui/.env
-
-# 4. Заполнить .env:
-#    SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY — из Supabase Dashboard → Settings → API
-#    JWT_ACCESS_SECRET, JWT_REFRESH_SECRET — любые случайные строки (мин. 32 символа)
-#    OPENAI_API_KEY — опционально
-
-# 5. Запустить
-npm run dev:all
 ```
 
-В логах должно появиться `Persistence: Supabase` — значит БД подключена.
+Затем открой скачанную папку в VS Code: **File → Open Folder** → выбери папку `SupportPulse`.
+
+После этого снова открой терминал (**Ctrl+`**) и убедись, что в строке терминала написано что-то вроде `PS K:\SupportPulse>`.
 
 ---
 
-## Подробное описание
+## Шаг 3 — Установи зависимости проекта
 
-## Требования
+В терминале выполни по очереди:
 
-- Node.js 20+
-- npm 9+
-
----
-
-## Установка зависимостей
-
-```bash
-# Backend
+```
 npm install
-
-# Frontend (виджет + панель)
 npm --prefix apps/widget-ui install
 ```
 
+Это займёт 1–2 минуты. Это нормально.
+
 ---
 
-## Переменные окружения
+## Шаг 4 — Создай файлы настроек
 
-Скопируй шаблон и заполни значения:
+В терминале:
 
-```bash
+```
 cp .env.example .env
 cp apps/widget-ui/.env.example apps/widget-ui/.env
 ```
 
-### Backend `.env`
-
-| Переменная | Описание |
-|---|---|
-| `PORT` | Порт backend (по умолчанию `3000`) |
-| `NODE_ENV` | `development` или `production` |
-| `FRONTEND_ORIGIN` | URL frontend-сервера в dev-режиме (`http://localhost:5173`) |
-| `JWT_ACCESS_SECRET` | Секрет для подписи access-токенов (мин. 32 символа) |
-| `JWT_REFRESH_SECRET` | Секрет для refresh-токенов |
-| `ACCESS_TOKEN_TTL` | Время жизни access-токена (например, `15m`) |
-| `REFRESH_TOKEN_TTL` | Время жизни refresh-токена (например, `7d`) |
-| `SUPABASE_URL` | URL Supabase-проекта |
-| `SUPABASE_SERVICE_ROLE_KEY` | Service role ключ (bypasses RLS) |
-| `OPENAI_API_KEY` | Ключ OpenAI (опционально — без него fallback по FAQ) |
-| `OPENAI_MODEL` | Модель OpenAI (по умолчанию `gpt-4o-mini`) |
-
-Если `SUPABASE_URL` и `SUPABASE_SERVICE_ROLE_KEY` заполнены — backend автоматически использует Supabase. Без них запускается на in-memory адаптерах (данные теряются при перезапуске).
-
-### Frontend `apps/widget-ui/.env`
-
-| Переменная | Описание |
-|---|---|
-| `VITE_API_BASE_URL` | URL backend API (в dev: `/api`, proxied Vite → `:3000`) |
-| `VITE_DEFAULT_TENANT_ID` | UUID тенанта по умолчанию |
+В левой панели VS Code появятся два новых файла: `.env` и `apps/widget-ui/.env`.
 
 ---
 
-## Supabase
+## Шаг 5 — Заполни настройки
 
-Схема и тестовые данные уже применены к проекту. Если разворачиваешь с нуля — выполни в Supabase Dashboard → SQL Editor:
+Открой файл `.env` в VS Code (он в корне проекта) и заполни значения.
+
+### Без Supabase (для быстрого старта)
+
+Минимальный набор для запуска на локальных данных — заполни только секреты:
 
 ```
-supabase/migrations/001_init.sql   — схема БД
-supabase/seed.sql                  — тестовые данные (тенант, пользователи, FAQ)
+JWT_ACCESS_SECRET=вставь_любую_длинную_случайную_строку_минимум_32_символа
+JWT_REFRESH_SECRET=вставь_другую_длинную_случайную_строку_минимум_32_символа
+```
+
+Как сгенерировать случайную строку: открой https://passwords-generator.org, выбери длину 40, скопируй и вставь.
+
+В этом режиме данные хранятся в памяти и сбрасываются при перезапуске. Подходит для знакомства с проектом.
+
+### С Supabase (полноценная БД)
+
+Дополнительно заполни:
+
+```
+SUPABASE_URL=https://xxxx.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=eyJh...
+```
+
+Где взять: зайди в [Supabase Dashboard](https://supabase.com/dashboard) → твой проект → **Settings → API** → скопируй **Project URL** и **service_role** ключ.
+
+После этого выполни SQL-миграции в Supabase Dashboard → **SQL Editor**:
+- сначала содержимое файла `supabase/migrations/001_init.sql`
+- затем содержимое `supabase/seed.sql`
+
+### OpenAI (опционально)
+
+Без него AI отвечает напрямую текстом из FAQ — этого достаточно для тестирования.
+Если хочешь умные ответы через GPT:
+
+```
+OPENAI_API_KEY=sk-...
 ```
 
 ---
 
-## Локальный запуск
+## Шаг 6 — Запусти проект
 
-### Вариант 1 — один терминал
-
-```bash
+```
 npm run dev:all
 ```
 
-Backend на `:3000`, frontend на `:5173`. В логах должно появиться `Persistence: Supabase`.
-
-### Вариант 2 — раздельно
-
-```bash
-# Терминал 1
-npm run dev
-
-# Терминал 2
-npm run dev:frontend
+Подожди несколько секунд. В терминале должно появиться:
 ```
+Backend listening on http://localhost:3000
+```
+
+Теперь открой браузер и зайди на **http://localhost:5173** — это панель управления.
 
 ---
 
-## Тест встраивания виджета
+## Шаг 7 — Войди в систему
 
-Открой `demo.html` в браузере при запущенном backend + frontend. Файл в корне проекта имитирует сайт компании и загружает виджет через:
-
-```html
-<script src="http://localhost:3000/api/public/tenants/11111111-1111-1111-1111-111111111111/embed.js"></script>
-```
-
----
-
-## Production-сборка
-
-```bash
-npm run build:fullstack
-npm start
-```
-
-После сборки backend раздаёт frontend по `/`, API доступен по `/api`.
-
----
-
-## Тесты
-
-```bash
-npm test
-```
-
----
-
-## Демо-аккаунты
-
-Пароль для всех: `Admin123!`
+На странице входа используй один из демо-аккаунтов. Пароль для всех: `Admin123!`
 
 | Email | Роль |
 |---|---|
@@ -160,17 +139,72 @@ npm test
 
 ---
 
+## Шаг 8 — Протестируй виджет
+
+Открой файл `demo.html` в браузере (двойной клик по файлу в проводнике или в VS Code через **правую кнопку → Reveal in File Explorer**).
+
+Убедись, что проект запущен (`npm run dev:all` в терминале). В правом нижнем углу страницы появится кнопка виджета.
+
+> **Примечание:** если используешь Supabase free tier, первый запрос может занять до 2 минут — база "засыпает" после периода неактивности. Последующие запросы быстрые.
+
+---
+
+## Остановка проекта
+
+В терминале нажми **Ctrl+C**.
+
+---
+
+## Повторный запуск
+
+После того как проект настроен, для следующего запуска достаточно:
+
+```
+npm run dev:all
+```
+
+---
+
+## Возможные проблемы
+
+**`npm` не найден** — перезапусти VS Code после установки Node.js.
+
+**`git` не найден** — перезапусти VS Code после установки Git.
+
+**Порт 3000 уже занят** — измени `PORT=3001` в файле `.env`.
+
+**Ошибка `Cannot find module`** — запусти `npm install` ещё раз.
+
+---
+
+## Production-сборка
+
+```
+npm run build:fullstack
+npm start
+```
+
+После сборки backend раздаёт frontend по `/`, API доступен по `/api`.
+
+---
+
+## Тесты
+
+```
+npm test
+```
+
+---
+
 ## API — краткий справочник
 
 ### Auth
-
 ```
 POST /api/auth/login
 POST /api/auth/refresh
 ```
 
 ### Public Widget
-
 ```
 GET  /api/public/tenants/:tenantId/widget
 GET  /api/public/tenants/:tenantId/faq/search?q=...
@@ -182,7 +216,6 @@ POST /api/public/tenants/:tenantId/dialogue-sessions/:sessionId/escalate
 ```
 
 ### Operator
-
 ```
 GET  /api/operator/tickets
 GET  /api/operator/tickets/:ticketId/messages
@@ -192,7 +225,6 @@ POST /api/operator/tickets/:ticketId/messages
 ```
 
 ### Company Admin
-
 ```
 GET  /api/company/knowledge-base
 POST /api/company/faq
@@ -202,7 +234,6 @@ PUT  /api/company/widget-config
 ```
 
 ### Platform Admin
-
 ```
 GET  /api/platform/tenants
 POST /api/platform/tenants
