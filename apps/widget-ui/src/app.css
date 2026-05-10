@@ -1242,7 +1242,7 @@ html.embed-mode .widget-shell {
 .ai-status-hint::after {
   content: attr(data-tooltip);
   position: absolute;
-  bottom: calc(100% + 8px);
+  top: calc(100% + 8px);
   left: 50%;
   transform: translateX(-50%);
   background: #1a2132;
