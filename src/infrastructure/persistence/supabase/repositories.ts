@@ -235,6 +235,14 @@ export class SupabaseMessageRepository implements MessageRepository {
         .select()
         .single();
       if (!error) return toMessage(data as MessageRow);
+
+      // A previous timed-out attempt actually committed — row already exists. Fetch it.
+      if (error.message.includes("duplicate key")) {
+        const { data: existing, error: fetchError } = await this.db
+          .from("messages").select().eq("message_id", message.id).single();
+        if (!fetchError && existing) return toMessage(existing as MessageRow);
+      }
+
       if (attempt < 2 && isTransient(error.message)) {
         await new Promise<void>((resolve) => setTimeout(resolve, 2000 * (attempt + 1)));
         continue;
