@@ -57,6 +57,22 @@ async function mustSelect<T>(promise: ReturnType<SupabaseClient["from"]>["select
   return (data ?? []).map(map);
 }
 
+const isTransient = (msg: string) =>
+  msg.includes("AbortError") || msg.includes("terminated") || msg.includes("ECONNRESET") || msg.includes("fetch failed");
+
+async function withRetry(op: () => Promise<{ data: unknown; error: { message: string } | null }>): Promise<unknown> {
+  for (let attempt = 0; attempt <= 2; attempt++) {
+    const { data, error } = await op();
+    if (!error) return data;
+    if (attempt < 2 && isTransient(error.message)) {
+      await new Promise<void>((r) => setTimeout(r, 2000 * (attempt + 1)));
+      continue;
+    }
+    throw new Error(error.message);
+  }
+  throw new Error("Операция не выполнена после нескольких попыток.");
+}
+
 // ---------- repositories ----------
 
 export class SupabaseTenantRepository implements TenantRepository {
@@ -197,15 +213,27 @@ export class SupabaseDialogueSessionRepository implements DialogueSessionReposit
   }
 
   async create(session: DialogueSession): Promise<DialogueSession> {
-    const { data, error } = await this.db.from("dialogue_sessions").insert({ session_id: session.id, tenant_id: session.tenantId, state: session.state, customer_name: session.customerName, customer_email: session.customerEmail, last_knowledge_article_ids: session.lastKnowledgeArticleIds, created_at: session.createdAt, updated_at: session.updatedAt }).select().single();
-    if (error) throw new Error(error.message);
-    return toSession(data as SessionRow);
+    for (let attempt = 0; attempt <= 2; attempt++) {
+      const { data, error } = await this.db.from("dialogue_sessions").insert({ session_id: session.id, tenant_id: session.tenantId, state: session.state, customer_name: session.customerName, customer_email: session.customerEmail, last_knowledge_article_ids: session.lastKnowledgeArticleIds, created_at: session.createdAt, updated_at: session.updatedAt }).select().single();
+      if (!error) return toSession(data as SessionRow);
+      if (error.message.includes("duplicate key")) {
+        const { data: existing } = await this.db.from("dialogue_sessions").select().eq("session_id", session.id).single();
+        if (existing) return toSession(existing as SessionRow);
+      }
+      if (attempt < 2 && isTransient(error.message)) {
+        await new Promise<void>((r) => setTimeout(r, 2000 * (attempt + 1)));
+        continue;
+      }
+      throw new Error(error.message);
+    }
+    throw new Error("Не удалось создать сессию после нескольких попыток.");
   }
 
   async update(session: DialogueSession): Promise<DialogueSession> {
-    const { data, error } = await this.db.from("dialogue_sessions").update({ state: session.state, customer_name: session.customerName, customer_email: session.customerEmail, last_knowledge_article_ids: session.lastKnowledgeArticleIds, updated_at: session.updatedAt }).eq("session_id", session.id).select().single();
-    if (error) throw new Error(error.message);
-    return toSession(data as SessionRow);
+    const data = await withRetry(async () =>
+      this.db.from("dialogue_sessions").update({ state: session.state, customer_name: session.customerName, customer_email: session.customerEmail, last_knowledge_article_ids: session.lastKnowledgeArticleIds, updated_at: session.updatedAt }).eq("session_id", session.id).select().single()
+    ) as SessionRow;
+    return toSession(data);
   }
 }
 
@@ -225,9 +253,6 @@ export class SupabaseMessageRepository implements MessageRepository {
   }
 
   async create(message: Message): Promise<Message> {
-    const isTransient = (msg: string) =>
-      msg.includes("AbortError") || msg.includes("terminated") || msg.includes("ECONNRESET") || msg.includes("fetch failed");
-
     for (let attempt = 0; attempt <= 2; attempt++) {
       const { data, error } = await this.db
         .from("messages")
@@ -281,15 +306,27 @@ export class SupabaseTicketRepository implements TicketRepository {
   }
 
   async create(ticket: Ticket): Promise<Ticket> {
-    const { data, error } = await this.db.from("tickets").insert({ ticket_id: ticket.id, tenant_id: ticket.tenantId, session_id: ticket.sessionId, status: ticket.status, assigned_user_id: ticket.assignedUserId, reason: ticket.reason, requested_by: ticket.requestedBy, closed_reason: ticket.closedReason, created_at: ticket.createdAt, updated_at: ticket.updatedAt }).select().single();
-    if (error) throw new Error(error.message);
-    return toTicket(data as TicketRow);
+    for (let attempt = 0; attempt <= 2; attempt++) {
+      const { data, error } = await this.db.from("tickets").insert({ ticket_id: ticket.id, tenant_id: ticket.tenantId, session_id: ticket.sessionId, status: ticket.status, assigned_user_id: ticket.assignedUserId, reason: ticket.reason, requested_by: ticket.requestedBy, closed_reason: ticket.closedReason, created_at: ticket.createdAt, updated_at: ticket.updatedAt }).select().single();
+      if (!error) return toTicket(data as TicketRow);
+      if (error.message.includes("duplicate key")) {
+        const { data: existing } = await this.db.from("tickets").select().eq("ticket_id", ticket.id).single();
+        if (existing) return toTicket(existing as TicketRow);
+      }
+      if (attempt < 2 && isTransient(error.message)) {
+        await new Promise<void>((r) => setTimeout(r, 2000 * (attempt + 1)));
+        continue;
+      }
+      throw new Error(error.message);
+    }
+    throw new Error("Не удалось создать тикет после нескольких попыток.");
   }
 
   async update(ticket: Ticket): Promise<Ticket> {
-    const { data, error } = await this.db.from("tickets").update({ status: ticket.status, assigned_user_id: ticket.assignedUserId, closed_reason: ticket.closedReason, updated_at: ticket.updatedAt }).eq("ticket_id", ticket.id).select().single();
-    if (error) throw new Error(error.message);
-    return toTicket(data as TicketRow);
+    const data = await withRetry(async () =>
+      this.db.from("tickets").update({ status: ticket.status, assigned_user_id: ticket.assignedUserId, closed_reason: ticket.closedReason, updated_at: ticket.updatedAt }).eq("ticket_id", ticket.id).select().single()
+    ) as TicketRow;
+    return toTicket(data);
   }
 }
 
