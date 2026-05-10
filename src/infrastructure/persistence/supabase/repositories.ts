@@ -85,9 +85,10 @@ export class SupabaseTenantRepository implements TenantRepository {
   }
 
   async getById(id: string): Promise<Tenant | null> {
-    const { data, error } = await this.db.from("tenants").select("*").eq("tenant_id", id).maybeSingle();
-    if (error) throw new Error(error.message);
-    return data ? toTenant(data as TenantRow) : null;
+    const data = await withRetry(async () =>
+      this.db.from("tenants").select("*").eq("tenant_id", id).maybeSingle()
+    ) as TenantRow | null;
+    return data ? toTenant(data) : null;
   }
 
   async create(tenant: Tenant): Promise<Tenant> {
@@ -151,9 +152,10 @@ export class SupabaseFaqRepository implements FaqRepository {
   constructor(private readonly db: SupabaseClient) {}
 
   async listByTenant(tenantId: string): Promise<FaqArticle[]> {
-    const { data, error } = await this.db.from("faq_articles").select("*").eq("tenant_id", tenantId).order("question");
-    if (error) throw new Error(error.message);
-    return (data ?? []).map((r) => toFaq(r as FaqRow));
+    const data = await withRetry(async () =>
+      this.db.from("faq_articles").select("*").eq("tenant_id", tenantId).order("question")
+    ) as FaqRow[] | null;
+    return (data ?? []).map(toFaq);
   }
 
   async searchByTenant(tenantId: string, query: string): Promise<FaqArticle[]> {
@@ -185,9 +187,10 @@ export class SupabaseWidgetConfigRepository implements WidgetConfigRepository {
   constructor(private readonly db: SupabaseClient) {}
 
   async getByTenantId(tenantId: string): Promise<WidgetConfig | null> {
-    const { data, error } = await this.db.from("widget_configs").select("*").eq("tenant_id", tenantId).maybeSingle();
-    if (error) throw new Error(error.message);
-    return data ? toWidgetConfig(data as WidgetConfigRow) : null;
+    const data = await withRetry(async () =>
+      this.db.from("widget_configs").select("*").eq("tenant_id", tenantId).maybeSingle()
+    ) as WidgetConfigRow | null;
+    return data ? toWidgetConfig(data) : null;
   }
 
   async upsert(config: WidgetConfig): Promise<WidgetConfig> {
@@ -207,9 +210,10 @@ export class SupabaseDialogueSessionRepository implements DialogueSessionReposit
   }
 
   async getById(id: string): Promise<DialogueSession | null> {
-    const { data, error } = await this.db.from("dialogue_sessions").select("*").eq("session_id", id).maybeSingle();
-    if (error) throw new Error(error.message);
-    return data ? toSession(data as SessionRow) : null;
+    const data = await withRetry(async () =>
+      this.db.from("dialogue_sessions").select("*").eq("session_id", id).maybeSingle()
+    ) as SessionRow | null;
+    return data ? toSession(data) : null;
   }
 
   async create(session: DialogueSession): Promise<DialogueSession> {
@@ -241,9 +245,10 @@ export class SupabaseMessageRepository implements MessageRepository {
   constructor(private readonly db: SupabaseClient) {}
 
   async listBySession(sessionId: string): Promise<Message[]> {
-    const { data, error } = await this.db.from("messages").select("*").eq("session_id", sessionId).order("created_at");
-    if (error) throw new Error(error.message);
-    return (data ?? []).map((r) => toMessage(r as MessageRow));
+    const data = await withRetry(async () =>
+      this.db.from("messages").select("*").eq("session_id", sessionId).order("created_at")
+    ) as MessageRow[] | null;
+    return (data ?? []).map(toMessage);
   }
 
   async listByTicket(ticketId: string): Promise<Message[]> {
