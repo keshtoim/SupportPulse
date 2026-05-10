@@ -843,6 +843,57 @@ html.embed-mode .widget-shell {
   resize: vertical;
 }
 
+.news-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px;
+  max-width: 640px;
+}
+
+.news-card {
+  background: #f3f1ff;
+  border-radius: 12px;
+  padding: 20px 22px;
+}
+
+.news-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.news-badge {
+  background: #6c47ff;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+.news-date {
+  font-size: 12px;
+  color: #8b8fa8;
+}
+
+.news-title {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+
+.news-body {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #444;
+}
+
 .profile-layout {
   display: grid;
   grid-template-columns: 1fr 280px;
