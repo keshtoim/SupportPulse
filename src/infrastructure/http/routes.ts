@@ -45,6 +45,10 @@ const escalateSchema = z.object({
   customerEmail: z.string().email().optional()
 });
 
+const createTopicSchema = z.object({
+  title: z.string().min(2)
+});
+
 const createFaqSchema = z.object({
   topicId: z.string().min(1),
   question: z.string().min(5),
@@ -257,6 +261,15 @@ export const createApiRouter = (context: ApplicationContext) => {
       const actor = getRequiredAuthUser(request);
       const result = await context.companyService.getKnowledgeBase(actor);
       response.json(result);
+    })
+  );
+  companyRouter.post(
+    "/topics",
+    asyncHandler(async (request, response) => {
+      const actor = getRequiredAuthUser(request);
+      const payload = createTopicSchema.parse(request.body);
+      const result = await context.companyService.createTopic(actor, payload);
+      response.status(201).json(result);
     })
   );
   companyRouter.post(

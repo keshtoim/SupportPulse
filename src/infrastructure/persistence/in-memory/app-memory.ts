@@ -264,6 +264,11 @@ export class InMemoryTopicRepository implements TopicRepository {
     const topic = this.database.topics.get(id);
     return topic ? clone(topic) : null;
   }
+
+  async create(topic: Topic): Promise<Topic> {
+    this.database.topics.set(topic.id, clone(topic));
+    return clone(topic);
+  }
 }
 
 export class InMemoryFaqRepository implements FaqRepository {

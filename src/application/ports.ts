@@ -79,6 +79,7 @@ export interface UserRepository {
 export interface TopicRepository {
   listByTenant(tenantId: string): Promise<Topic[]>;
   getById(id: string): Promise<Topic | null>;
+  create(topic: Topic): Promise<Topic>;
 }
 
 export interface FaqRepository {

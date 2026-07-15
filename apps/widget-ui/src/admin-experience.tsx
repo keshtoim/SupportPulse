@@ -8,6 +8,7 @@ import {
   statusLabel,
   type AdminScreen,
   type AuthResponse,
+  type FaqArticle,
   type MessageRecord,
   type TicketRecord,
   type Topic,
@@ -47,9 +48,27 @@ export function AdminExperience({
     privacyNotice: '',
   })
   const [settingsNotice, setSettingsNotice] = useState<string | null>(null)
+  const [knowledgeNotice, setKnowledgeNotice] = useState<string | null>(null)
+  const [newTopicTitle, setNewTopicTitle] = useState('')
+  const [addingFaqTopicId, setAddingFaqTopicId] = useState<string | null>(null)
+  const [newFaqQuestion, setNewFaqQuestion] = useState('')
+  const [newFaqAnswer, setNewFaqAnswer] = useState('')
+  const [editingFaqId, setEditingFaqId] = useState<string | null>(null)
+  const [editFaqQuestion, setEditFaqQuestion] = useState('')
+  const [editFaqAnswer, setEditFaqAnswer] = useState('')
 
   const adminTitle =
-    screen === 'dashboard' ? 'Главная' : screen === 'chats' ? 'Очередь' : screen === 'settings' ? 'Настройки' : screen === 'news' ? 'Новости' : 'Профиль'
+    screen === 'dashboard'
+      ? 'Главная'
+      : screen === 'chats'
+        ? 'Очередь'
+        : screen === 'knowledge'
+          ? 'База знаний'
+          : screen === 'settings'
+            ? 'Настройки'
+            : screen === 'news'
+              ? 'Новости'
+              : 'Профиль'
   const canManageCompany = auth?.user.role === 'company_admin'
   const selectedTicket = tickets.find((ticket) => ticket.id === selectedTicketId) ?? null
 
@@ -274,6 +293,77 @@ export function AdminExperience({
     }
   }
 
+  const handleCreateTopic = async (event: Event) => {
+    event.preventDefault()
+
+    if (!canManageCompany || !newTopicTitle.trim()) {
+      return
+    }
+
+    try {
+      setKnowledgeNotice(null)
+      await authorizedRequest<Topic>('/company/topics', {
+        method: 'POST',
+        body: JSON.stringify({ title: newTopicTitle.trim() }),
+      })
+      setNewTopicTitle('')
+      await loadCompanyData()
+      setKnowledgeNotice('Тема добавлена.')
+    } catch (error) {
+      setKnowledgeNotice((error as Error).message)
+    }
+  }
+
+  const handleCreateFaq = async (event: Event, topicId: string) => {
+    event.preventDefault()
+
+    if (!canManageCompany || !newFaqQuestion.trim() || !newFaqAnswer.trim()) {
+      return
+    }
+
+    try {
+      setKnowledgeNotice(null)
+      await authorizedRequest<FaqArticle>('/company/faq', {
+        method: 'POST',
+        body: JSON.stringify({ topicId, question: newFaqQuestion.trim(), answer: newFaqAnswer.trim() }),
+      })
+      setNewFaqQuestion('')
+      setNewFaqAnswer('')
+      setAddingFaqTopicId(null)
+      await loadCompanyData()
+      setKnowledgeNotice('Вопрос добавлен.')
+    } catch (error) {
+      setKnowledgeNotice((error as Error).message)
+    }
+  }
+
+  const startEditFaq = (article: FaqArticle) => {
+    setEditingFaqId(article.id)
+    setEditFaqQuestion(article.question)
+    setEditFaqAnswer(article.answer)
+  }
+
+  const handleUpdateFaq = async (event: Event, faqId: string) => {
+    event.preventDefault()
+
+    if (!canManageCompany || !editFaqQuestion.trim() || !editFaqAnswer.trim()) {
+      return
+    }
+
+    try {
+      setKnowledgeNotice(null)
+      await authorizedRequest<FaqArticle>(`/company/faq/${faqId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ question: editFaqQuestion.trim(), answer: editFaqAnswer.trim() }),
+      })
+      setEditingFaqId(null)
+      await loadCompanyData()
+      setKnowledgeNotice('Вопрос обновлён.')
+    } catch (error) {
+      setKnowledgeNotice((error as Error).message)
+    }
+  }
+
   const knowledgeArticlesCount = companyKnowledge.reduce((total, topic) => total + topic.articles.length, 0)
 
   return (
@@ -315,6 +405,16 @@ export function AdminExperience({
                   </svg>
                 ),
                 screen: 'chats' as const,
+              },
+              {
+                title: 'База знаний',
+                icon: (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                  </svg>
+                ),
+                screen: 'knowledge' as const,
               },
               {
                 title: 'Настройки',
@@ -369,6 +469,15 @@ export function AdminExperience({
               icon: (
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
+              ),
+            },
+            {
+              target: 'knowledge' as const,
+              icon: (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
                 </svg>
               ),
             },
@@ -583,6 +692,152 @@ export function AdminExperience({
               </div>
             )}
 
+            {screen === 'knowledge' && (
+              <div class="admin-page">
+                <h2>База знаний</h2>
+                {!canManageCompany && (
+                  <div class="alert-banner">
+                    Для управления базой знаний нужен вход под администратором компании.
+                  </div>
+                )}
+                {knowledgeNotice && (
+                  <div class={`alert-banner ${knowledgeNotice.includes('добавл') || knowledgeNotice.includes('обновл') ? 'success' : 'error'}`}>
+                    {knowledgeNotice}
+                  </div>
+                )}
+
+                <form class="inline-form" onSubmit={handleCreateTopic}>
+                  <input
+                    class="text-input"
+                    type="text"
+                    placeholder="Название новой темы"
+                    value={newTopicTitle}
+                    disabled={!canManageCompany}
+                    onInput={(event) => setNewTopicTitle((event.currentTarget as HTMLInputElement).value)}
+                  />
+                  <button class="primary-button compact" type="submit" disabled={!canManageCompany}>
+                    Добавить тему
+                  </button>
+                </form>
+
+                <div class="topic-stack">
+                  {companyKnowledge.map((topic) => (
+                    <article class="card topic-card" key={topic.id}>
+                      <div class="topic-header">
+                        <h3>{topic.title}</h3>
+                        <span>{topic.articles.length} FAQ</span>
+                      </div>
+
+                      <div class="faq-list">
+                        {topic.articles.map((article) => (
+                          <div class="card compact-card faq-item" key={article.id}>
+                            {editingFaqId === article.id ? (
+                              <form class="settings-form" onSubmit={(event) => handleUpdateFaq(event, article.id)}>
+                                <label class="form-label" for={`faq-question-${article.id}`}>
+                                  Вопрос
+                                </label>
+                                <textarea
+                                  id={`faq-question-${article.id}`}
+                                  class="text-area"
+                                  value={editFaqQuestion}
+                                  onInput={(event) => setEditFaqQuestion((event.currentTarget as HTMLTextAreaElement).value)}
+                                />
+                                <label class="form-label" for={`faq-answer-${article.id}`}>
+                                  Ответ
+                                </label>
+                                <textarea
+                                  id={`faq-answer-${article.id}`}
+                                  class="text-area"
+                                  value={editFaqAnswer}
+                                  onInput={(event) => setEditFaqAnswer((event.currentTarget as HTMLTextAreaElement).value)}
+                                />
+                                <div class="thread-actions">
+                                  <button class="primary-button compact" type="submit">
+                                    Сохранить
+                                  </button>
+                                  <button
+                                    class="secondary-button compact-button"
+                                    type="button"
+                                    onClick={() => setEditingFaqId(null)}
+                                  >
+                                    Отмена
+                                  </button>
+                                </div>
+                              </form>
+                            ) : (
+                              <>
+                                <strong>{article.question}</strong>
+                                <p>{article.answer}</p>
+                                {canManageCompany && (
+                                  <button class="secondary-link" type="button" onClick={() => startEditFaq(article)}>
+                                    Редактировать
+                                  </button>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        ))}
+                        {topic.articles.length === 0 && <div class="empty-state">В этой теме пока нет вопросов.</div>}
+                      </div>
+
+                      {canManageCompany &&
+                        (addingFaqTopicId === topic.id ? (
+                          <form class="settings-form" onSubmit={(event) => handleCreateFaq(event, topic.id)}>
+                            <label class="form-label" for={`new-faq-question-${topic.id}`}>
+                              Новый вопрос
+                            </label>
+                            <textarea
+                              id={`new-faq-question-${topic.id}`}
+                              class="text-area"
+                              value={newFaqQuestion}
+                              onInput={(event) => setNewFaqQuestion((event.currentTarget as HTMLTextAreaElement).value)}
+                            />
+                            <label class="form-label" for={`new-faq-answer-${topic.id}`}>
+                              Ответ
+                            </label>
+                            <textarea
+                              id={`new-faq-answer-${topic.id}`}
+                              class="text-area"
+                              value={newFaqAnswer}
+                              onInput={(event) => setNewFaqAnswer((event.currentTarget as HTMLTextAreaElement).value)}
+                            />
+                            <div class="thread-actions">
+                              <button class="primary-button compact" type="submit">
+                                Сохранить вопрос
+                              </button>
+                              <button
+                                class="secondary-button compact-button"
+                                type="button"
+                                onClick={() => {
+                                  setAddingFaqTopicId(null)
+                                  setNewFaqQuestion('')
+                                  setNewFaqAnswer('')
+                                }}
+                              >
+                                Отмена
+                              </button>
+                            </div>
+                          </form>
+                        ) : (
+                          <button
+                            class="chip"
+                            type="button"
+                            onClick={() => {
+                              setAddingFaqTopicId(topic.id)
+                              setNewFaqQuestion('')
+                              setNewFaqAnswer('')
+                            }}
+                          >
+                            + Добавить вопрос
+                          </button>
+                        ))}
+                    </article>
+                  ))}
+                  {companyKnowledge.length === 0 && <div class="empty-state">Тем пока нет — добавьте первую выше.</div>}
+                </div>
+              </div>
+            )}
+
             {screen === 'settings' && (
               <div class="admin-page">
                 <h2>Настройки виджета</h2>
@@ -751,6 +1006,9 @@ export function AdminExperience({
                       setTicketMessages([])
                       setCompanyKnowledge([])
                       setWidgetConfig(null)
+                      setKnowledgeNotice(null)
+                      setAddingFaqTopicId(null)
+                      setEditingFaqId(null)
                     }}
                   >
                     Выйти

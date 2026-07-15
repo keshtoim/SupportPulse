@@ -146,6 +146,12 @@ export class SupabaseTopicRepository implements TopicRepository {
     if (error) throw new Error(error.message);
     return data ? toTopic(data as TopicRow) : null;
   }
+
+  async create(topic: Topic): Promise<Topic> {
+    const { data, error } = await this.db.from("topics").insert({ topic_id: topic.id, tenant_id: topic.tenantId, title: topic.title, created_at: topic.createdAt }).select().single();
+    if (error) throw new Error(error.message);
+    return toTopic(data as TopicRow);
+  }
 }
 
 export class SupabaseFaqRepository implements FaqRepository {

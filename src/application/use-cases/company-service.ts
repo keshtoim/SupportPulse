@@ -1,5 +1,5 @@
 import type { AuditLogRepository, Clock, FaqRepository, IdGenerator, TopicRepository, WidgetConfigRepository } from "../ports";
-import { AppError, type AuthenticatedUser, type FaqArticle, type WidgetConfig } from "../../domain/model";
+import { AppError, type AuthenticatedUser, type FaqArticle, type Topic, type WidgetConfig } from "../../domain/model";
 import { addAuditEntry, companyAdminRoles, ensureRole } from "./support";
 
 type CompanyServiceDependencies = {
@@ -25,6 +25,34 @@ export class CompanyAdministrationApplicationService {
       ...topic,
       articles: articles.filter((article) => article.topicId === topic.id)
     }));
+  }
+
+  /** Создаёт новую тему базы знаний */
+  async createTopic(actor: AuthenticatedUser, payload: { title: string }) {
+    ensureRole(actor, companyAdminRoles);
+    const tenantId = actor.tenantId as string;
+
+    const topic: Topic = {
+      id: this.dependencies.idGenerator.next("topic"),
+      tenantId,
+      title: payload.title.trim(),
+      createdAt: this.dependencies.clock.now().toISOString()
+    };
+
+    const created = await this.dependencies.topicRepository.create(topic);
+
+    await addAuditEntry(this.dependencies.auditLogRepository, this.dependencies.idGenerator, this.dependencies.clock, {
+      tenantId,
+      actorUserId: actor.id,
+      action: "topic_created",
+      entityType: "topic",
+      entityId: created.id,
+      payload: {
+        title: created.title
+      }
+    });
+
+    return created;
   }
 
   /** Создаёт новую статью FAQ под указанной темой */
