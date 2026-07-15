@@ -1,9 +1,13 @@
 import { Router, type Request, type RequestHandler, type Response } from "express";
+import multer from "multer";
 import { z } from "zod";
 import type { ApplicationContext } from "../../app/application-context";
 import { AppError } from "../../domain/model";
 import { createAuthMiddleware, getRequiredAuthUser, requireRoles } from "./middlewares/auth-middleware";
 import { generateEmbedScript } from "./embed-script";
+
+// Файлы принимаются в память (без записи на диск) — извлечённый текст сразу уходит в БД, сам файл не хранится
+const knowledgeDocumentUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 const asyncHandler =
   (handler: (request: Request, response: Response) => Promise<void>): RequestHandler =>
@@ -305,6 +309,41 @@ export const createApiRouter = (context: ApplicationContext) => {
       const payload = updateWidgetConfigSchema.parse(request.body);
       const result = await context.companyService.updateWidgetConfig(actor, payload);
       response.json(result);
+    })
+  );
+  companyRouter.get(
+    "/knowledge/documents",
+    asyncHandler(async (request, response) => {
+      const actor = getRequiredAuthUser(request);
+      const result = await context.companyService.listKnowledgeDocuments(actor);
+      response.json(result);
+    })
+  );
+  companyRouter.post(
+    "/knowledge/documents",
+    knowledgeDocumentUpload.single("file"),
+    asyncHandler(async (request, response) => {
+      const actor = getRequiredAuthUser(request);
+
+      if (!request.file) {
+        throw new AppError("Файл не передан.", 400, "FILE_MISSING");
+      }
+
+      const result = await context.companyService.uploadKnowledgeDocument(actor, {
+        buffer: request.file.buffer,
+        mimeType: request.file.mimetype,
+        fileName: request.file.originalname,
+        sizeBytes: request.file.size
+      });
+      response.status(201).json(result);
+    })
+  );
+  companyRouter.delete(
+    "/knowledge/documents/:documentId",
+    asyncHandler(async (request, response) => {
+      const actor = getRequiredAuthUser(request);
+      await context.companyService.deleteKnowledgeDocument(actor, getSingleValue(request.params.documentId, "documentId"));
+      response.status(204).send();
     })
   );
   router.use("/company", companyRouter);

@@ -3,6 +3,7 @@ import type {
   AuthenticatedUser,
   DialogueSession,
   FaqArticle,
+  KnowledgeDocument,
   Message,
   SupportReplyContext,
   SupportReplyDecision,
@@ -60,6 +61,11 @@ export interface SupportAnswerService {
   isLlmEnabled(): boolean;
 }
 
+/** Извлекает текст из загруженного файла базы знаний (PDF/DOCX) */
+export interface DocumentTextExtractor {
+  extract(file: { buffer: Buffer; mimeType: string; fileName: string }): Promise<string>;
+}
+
 // --- Репозитории — абстракции над хранилищем данных ---
 
 export interface TenantRepository {
@@ -115,6 +121,13 @@ export interface TicketRepository {
   getById(id: string): Promise<Ticket | null>;
   create(ticket: Ticket): Promise<Ticket>;
   update(ticket: Ticket): Promise<Ticket>;
+}
+
+export interface KnowledgeDocumentRepository {
+  listByTenant(tenantId: string): Promise<KnowledgeDocument[]>;
+  getById(id: string): Promise<KnowledgeDocument | null>;
+  create(document: KnowledgeDocument): Promise<KnowledgeDocument>;
+  delete(id: string): Promise<void>;
 }
 
 export interface AuditLogRepository {

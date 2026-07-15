@@ -3,6 +3,7 @@ import type {
   AuditLogRepository,
   DialogueSessionRepository,
   FaqRepository,
+  KnowledgeDocumentRepository,
   MessageRepository,
   RefreshTokenRecord,
   RefreshTokenRepository,
@@ -16,6 +17,7 @@ import type {
   AuditLog,
   DialogueSession,
   FaqArticle,
+  KnowledgeDocument,
   Message,
   Tenant,
   Ticket,
@@ -36,6 +38,17 @@ type MessageRow = { message_id: string; session_id: string; ticket_id: string | 
 type TicketRow = { ticket_id: string; tenant_id: string; session_id: string; status: string; assigned_user_id: string | null; reason: string; requested_by: string; closed_reason: string | null; created_at: string; updated_at: string };
 type AuditLogRow = { audit_id: string; tenant_id: string | null; actor_user_id: string | null; action: string; entity_type: string; entity_id: string; payload: Record<string, unknown>; created_at: string };
 type RefreshTokenRow = { token: string; user_id: string; expires_at: string };
+type KnowledgeDocumentRow = {
+  document_id: string;
+  tenant_id: string;
+  file_name: string;
+  mime_type: string;
+  size_bytes: number;
+  status: string;
+  extracted_text: string | null;
+  error_message: string | null;
+  created_at: string;
+};
 
 // ---------- mappers ----------
 
@@ -48,6 +61,7 @@ const toSession = (r: SessionRow): DialogueSession => ({ id: r.session_id, tenan
 const toMessage = (r: MessageRow): Message => ({ id: r.message_id, sessionId: r.session_id, ticketId: r.ticket_id, senderType: r.sender_type as Message["senderType"], content: r.content, metadata: r.metadata ?? {}, createdAt: r.created_at });
 const toTicket = (r: TicketRow): Ticket => ({ id: r.ticket_id, tenantId: r.tenant_id, sessionId: r.session_id, status: r.status as Ticket["status"], assignedUserId: r.assigned_user_id, reason: r.reason, requestedBy: r.requested_by, closedReason: r.closed_reason, createdAt: r.created_at, updatedAt: r.updated_at });
 const toAuditLog = (r: AuditLogRow): AuditLog => ({ id: r.audit_id, tenantId: r.tenant_id, actorUserId: r.actor_user_id, action: r.action, entityType: r.entity_type, entityId: r.entity_id, payload: r.payload ?? {}, createdAt: r.created_at });
+const toKnowledgeDocument = (r: KnowledgeDocumentRow): KnowledgeDocument => ({ id: r.document_id, tenantId: r.tenant_id, fileName: r.file_name, mimeType: r.mime_type, sizeBytes: r.size_bytes, status: r.status as KnowledgeDocument["status"], extractedText: r.extracted_text, errorMessage: r.error_message, createdAt: r.created_at });
 
 // ---------- helpers ----------
 
@@ -341,6 +355,51 @@ export class SupabaseTicketRepository implements TicketRepository {
   }
 }
 
+export class SupabaseKnowledgeDocumentRepository implements KnowledgeDocumentRepository {
+  constructor(private readonly db: SupabaseClient) {}
+
+  async listByTenant(tenantId: string): Promise<KnowledgeDocument[]> {
+    const { data, error } = await this.db
+      .from("knowledge_documents")
+      .select("*")
+      .eq("tenant_id", tenantId)
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return (data ?? []).map((r) => toKnowledgeDocument(r as KnowledgeDocumentRow));
+  }
+
+  async getById(id: string): Promise<KnowledgeDocument | null> {
+    const { data, error } = await this.db.from("knowledge_documents").select("*").eq("document_id", id).maybeSingle();
+    if (error) throw new Error(error.message);
+    return data ? toKnowledgeDocument(data as KnowledgeDocumentRow) : null;
+  }
+
+  async create(document: KnowledgeDocument): Promise<KnowledgeDocument> {
+    const { data, error } = await this.db
+      .from("knowledge_documents")
+      .insert({
+        document_id: document.id,
+        tenant_id: document.tenantId,
+        file_name: document.fileName,
+        mime_type: document.mimeType,
+        size_bytes: document.sizeBytes,
+        status: document.status,
+        extracted_text: document.extractedText,
+        error_message: document.errorMessage,
+        created_at: document.createdAt
+      })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return toKnowledgeDocument(data as KnowledgeDocumentRow);
+  }
+
+  async delete(id: string): Promise<void> {
+    const { error } = await this.db.from("knowledge_documents").delete().eq("document_id", id);
+    if (error) throw new Error(error.message);
+  }
+}
+
 export class SupabaseAuditLogRepository implements AuditLogRepository {
   constructor(private readonly db: SupabaseClient) {}
 
@@ -390,5 +449,6 @@ export const createSupabaseRepositories = (db: SupabaseClient) => ({
   messageRepository: new SupabaseMessageRepository(db),
   ticketRepository: new SupabaseTicketRepository(db),
   auditLogRepository: new SupabaseAuditLogRepository(db),
-  refreshTokenRepository: new SupabaseRefreshTokenRepository(db)
+  refreshTokenRepository: new SupabaseRefreshTokenRepository(db),
+  knowledgeDocumentRepository: new SupabaseKnowledgeDocumentRepository(db)
 });

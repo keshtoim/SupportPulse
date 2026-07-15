@@ -7,6 +7,7 @@ import { WidgetSupportApplicationService } from "../application/use-cases/widget
 import type { AppEnv } from "../config/env";
 import { FaqRagAnswerService } from "../infrastructure/ai/assistant-services";
 import { BcryptPasswordService, JwtTokenService } from "../infrastructure/auth/security";
+import { FileDocumentTextExtractor } from "../infrastructure/documents/text-extractor";
 import { SystemClock, UuidIdGenerator, createInMemoryRepositories } from "../infrastructure/persistence/in-memory/app-memory";
 import { createSupabaseClient, SupabaseIdGenerator } from "../infrastructure/persistence/supabase/client";
 import { createSupabaseRepositories, SupabaseAuditLogRepository } from "../infrastructure/persistence/supabase/repositories";
@@ -47,6 +48,7 @@ export const createApplicationContext = (env: AppEnv) => {
     apiKey: env.openAiApiKey,
     model: env.openAiModel
   });
+  const documentTextExtractor = new FileDocumentTextExtractor();
 
   return {
     env,
@@ -84,6 +86,8 @@ export const createApplicationContext = (env: AppEnv) => {
       faqRepository: repositories.faqRepository,
       topicRepository: repositories.topicRepository,
       widgetConfigRepository: repositories.widgetConfigRepository,
+      knowledgeDocumentRepository: repositories.knowledgeDocumentRepository,
+      documentTextExtractor,
       auditLogRepository: repositories.auditLogRepository,
       idGenerator,
       clock

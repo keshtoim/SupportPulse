@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import cors from "cors";
 import express, { type NextFunction, type Request, type Response } from "express";
+import { MulterError } from "multer";
 import pinoHttp from "pino-http";
 import type { ApplicationContext } from "./application-context";
 import { AppError } from "../domain/model";
@@ -49,6 +50,15 @@ export const createApp = (context: ApplicationContext) => {
         error: error.code,
         message: error.message,
         details: error.details ?? null
+      });
+      return;
+    }
+
+    if (error instanceof MulterError) {
+      response.status(400).json({
+        error: error.code,
+        message: error.code === "LIMIT_FILE_SIZE" ? "Файл слишком большой (максимум 10 МБ)." : error.message,
+        details: null
       });
       return;
     }

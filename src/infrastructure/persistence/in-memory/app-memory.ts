@@ -8,6 +8,7 @@ import type {
   DialogueSessionRepository,
   FaqRepository,
   IdGenerator,
+  KnowledgeDocumentRepository,
   MessageRepository,
   RefreshTokenRecord,
   RefreshTokenRepository,
@@ -17,7 +18,18 @@ import type {
   UserRepository,
   WidgetConfigRepository
 } from "../../../application/ports";
-import type { AuditLog, DialogueSession, FaqArticle, Message, Tenant, Ticket, Topic, User, WidgetConfig } from "../../../domain/model";
+import type {
+  AuditLog,
+  DialogueSession,
+  FaqArticle,
+  KnowledgeDocument,
+  Message,
+  Tenant,
+  Ticket,
+  Topic,
+  User,
+  WidgetConfig
+} from "../../../domain/model";
 
 // Глубокое клонирование гарантирует изоляцию данных между запросами
 const clone = <Value>(value: Value): Value => structuredClone(value);
@@ -34,6 +46,7 @@ class InMemoryDatabase {
   readonly tickets = new Map<string, Ticket>();
   readonly auditLogs = new Map<string, AuditLog>();
   readonly refreshTokens = new Map<string, RefreshTokenRecord>();
+  readonly knowledgeDocuments = new Map<string, KnowledgeDocument>();
 
   constructor() {
     this.seed();
@@ -421,6 +434,31 @@ export class InMemoryAuditLogRepository implements AuditLogRepository {
   }
 }
 
+export class InMemoryKnowledgeDocumentRepository implements KnowledgeDocumentRepository {
+  constructor(private readonly database: InMemoryDatabase) {}
+
+  async listByTenant(tenantId: string): Promise<KnowledgeDocument[]> {
+    return [...this.database.knowledgeDocuments.values()]
+      .filter((document) => document.tenantId === tenantId)
+      .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
+      .map((value) => clone(value));
+  }
+
+  async getById(id: string): Promise<KnowledgeDocument | null> {
+    const document = this.database.knowledgeDocuments.get(id);
+    return document ? clone(document) : null;
+  }
+
+  async create(document: KnowledgeDocument): Promise<KnowledgeDocument> {
+    this.database.knowledgeDocuments.set(document.id, clone(document));
+    return clone(document);
+  }
+
+  async delete(id: string): Promise<void> {
+    this.database.knowledgeDocuments.delete(id);
+  }
+}
+
 export class InMemoryRefreshTokenRepository implements RefreshTokenRepository {
   constructor(private readonly database: InMemoryDatabase) {}
 
@@ -452,6 +490,7 @@ export const createInMemoryRepositories = () => {
     messageRepository: new InMemoryMessageRepository(database),
     ticketRepository: new InMemoryTicketRepository(database),
     auditLogRepository: new InMemoryAuditLogRepository(database),
-    refreshTokenRepository: new InMemoryRefreshTokenRepository(database)
+    refreshTokenRepository: new InMemoryRefreshTokenRepository(database),
+    knowledgeDocumentRepository: new InMemoryKnowledgeDocumentRepository(database)
   };
 };

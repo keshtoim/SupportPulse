@@ -1,11 +1,29 @@
-import type { AuditLogRepository, Clock, FaqRepository, IdGenerator, TopicRepository, WidgetConfigRepository } from "../ports";
-import { AppError, type AuthenticatedUser, type FaqArticle, type Topic, type WidgetConfig } from "../../domain/model";
+import type {
+  AuditLogRepository,
+  Clock,
+  DocumentTextExtractor,
+  FaqRepository,
+  IdGenerator,
+  KnowledgeDocumentRepository,
+  TopicRepository,
+  WidgetConfigRepository
+} from "../ports";
+import { AppError, type AuthenticatedUser, type FaqArticle, type KnowledgeDocument, type Topic, type WidgetConfig } from "../../domain/model";
 import { addAuditEntry, companyAdminRoles, ensureRole } from "./support";
+
+// Ограничения на загружаемые файлы базы знаний
+const MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024;
+const SUPPORTED_MIME_TYPES = new Set([
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+]);
 
 type CompanyServiceDependencies = {
   faqRepository: FaqRepository;
   topicRepository: TopicRepository;
   widgetConfigRepository: WidgetConfigRepository;
+  knowledgeDocumentRepository: KnowledgeDocumentRepository;
+  documentTextExtractor: DocumentTextExtractor;
   auditLogRepository: AuditLogRepository;
   idGenerator: IdGenerator;
   clock: Clock;
@@ -174,5 +192,91 @@ export class CompanyAdministrationApplicationService {
     });
 
     return savedConfig;
+  }
+
+  /** Возвращает список загруженных файлов базы знаний (без текста — для списка в админке) */
+  async listKnowledgeDocuments(actor: AuthenticatedUser) {
+    ensureRole(actor, companyAdminRoles);
+    return this.dependencies.knowledgeDocumentRepository.listByTenant(actor.tenantId as string);
+  }
+
+  /**
+   * Загружает файл (PDF/DOCX), извлекает из него текст и сохраняет как источник базы знаний.
+   * Само использование текста в AI-ответах — задача RAG-пайплайна (пока не реализован).
+   */
+  async uploadKnowledgeDocument(actor: AuthenticatedUser, file: { buffer: Buffer; mimeType: string; fileName: string; sizeBytes: number }) {
+    ensureRole(actor, companyAdminRoles);
+    const tenantId = actor.tenantId as string;
+
+    if (file.sizeBytes > MAX_UPLOAD_SIZE_BYTES) {
+      throw new AppError("Файл слишком большой (максимум 10 МБ).", 400, "FILE_TOO_LARGE");
+    }
+
+    if (!SUPPORTED_MIME_TYPES.has(file.mimeType)) {
+      throw new AppError("Поддерживаются только файлы PDF и DOCX.", 400, "UNSUPPORTED_FILE_TYPE");
+    }
+
+    const now = this.dependencies.clock.now().toISOString();
+    const baseDocument: KnowledgeDocument = {
+      id: this.dependencies.idGenerator.next("doc"),
+      tenantId,
+      fileName: file.fileName,
+      mimeType: file.mimeType,
+      sizeBytes: file.sizeBytes,
+      status: "processed",
+      extractedText: null,
+      errorMessage: null,
+      createdAt: now
+    };
+
+    let document: KnowledgeDocument;
+
+    try {
+      const extractedText = await this.dependencies.documentTextExtractor.extract(file);
+      document = { ...baseDocument, status: "processed", extractedText };
+    } catch (error) {
+      const message = error instanceof AppError ? error.message : "Не удалось обработать файл.";
+      document = { ...baseDocument, status: "failed", errorMessage: message };
+    }
+
+    const created = await this.dependencies.knowledgeDocumentRepository.create(document);
+
+    await addAuditEntry(this.dependencies.auditLogRepository, this.dependencies.idGenerator, this.dependencies.clock, {
+      tenantId,
+      actorUserId: actor.id,
+      action: created.status === "processed" ? "knowledge_document_uploaded" : "knowledge_document_upload_failed",
+      entityType: "knowledge_document",
+      entityId: created.id,
+      payload: {
+        fileName: created.fileName,
+        status: created.status
+      }
+    });
+
+    return created;
+  }
+
+  /** Удаляет ранее загруженный документ базы знаний */
+  async deleteKnowledgeDocument(actor: AuthenticatedUser, documentId: string) {
+    ensureRole(actor, companyAdminRoles);
+    const tenantId = actor.tenantId as string;
+    const document = await this.dependencies.knowledgeDocumentRepository.getById(documentId);
+
+    if (!document || document.tenantId !== tenantId) {
+      throw new AppError("Документ не найден.", 404, "KNOWLEDGE_DOCUMENT_NOT_FOUND");
+    }
+
+    await this.dependencies.knowledgeDocumentRepository.delete(documentId);
+
+    await addAuditEntry(this.dependencies.auditLogRepository, this.dependencies.idGenerator, this.dependencies.clock, {
+      tenantId,
+      actorUserId: actor.id,
+      action: "knowledge_document_deleted",
+      entityType: "knowledge_document",
+      entityId: documentId,
+      payload: {
+        fileName: document.fileName
+      }
+    });
   }
 }

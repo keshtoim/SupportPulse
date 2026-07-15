@@ -46,6 +46,22 @@ export interface FaqArticle {
   updatedAt: string;
 }
 
+// Статус обработки загруженного документа базы знаний
+export type KnowledgeDocumentStatus = "processed" | "failed";
+
+/** Загруженный файл (PDF/DOCX), из которого извлечён текст для базы знаний */
+export interface KnowledgeDocument {
+  id: string;
+  tenantId: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+  status: KnowledgeDocumentStatus;
+  extractedText: string | null;
+  errorMessage: string | null;
+  createdAt: string;
+}
+
 /** Настройки виджета для конкретного тенанта */
 export interface WidgetConfig {
   id: string;

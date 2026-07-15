@@ -30,6 +30,20 @@ export type Topic = {
   articles: FaqArticle[]
 }
 
+export type KnowledgeDocumentStatus = 'processed' | 'failed'
+
+export type KnowledgeDocument = {
+  id: string
+  tenantId: string
+  fileName: string
+  mimeType: string
+  sizeBytes: number
+  status: KnowledgeDocumentStatus
+  extractedText: string | null
+  errorMessage: string | null
+  createdAt: string
+}
+
 export type WidgetPayload = {
   tenant: {
     id: string
@@ -134,7 +148,8 @@ export const formatDateTime = (value: string): string =>
 export const apiRequest = async <ResponseType,>(path: string, init: RequestInit = {}): Promise<ResponseType> => {
   const headers = new Headers(init.headers ?? {})
 
-  if (init.body && !headers.has('Content-Type')) {
+  // FormData сама выставляет Content-Type с корректным boundary — трогать нельзя
+  if (init.body && !headers.has('Content-Type') && !(init.body instanceof FormData)) {
     headers.set('Content-Type', 'application/json')
   }
 

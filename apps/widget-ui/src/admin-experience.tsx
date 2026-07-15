@@ -9,6 +9,7 @@ import {
   type AdminScreen,
   type AuthResponse,
   type FaqArticle,
+  type KnowledgeDocument,
   type MessageRecord,
   type TicketRecord,
   type Topic,
@@ -56,6 +57,9 @@ export function AdminExperience({
   const [editingFaqId, setEditingFaqId] = useState<string | null>(null)
   const [editFaqQuestion, setEditFaqQuestion] = useState('')
   const [editFaqAnswer, setEditFaqAnswer] = useState('')
+  const [knowledgeDocuments, setKnowledgeDocuments] = useState<KnowledgeDocument[]>([])
+  const [selectedUploadFile, setSelectedUploadFile] = useState<File | null>(null)
+  const [uploadingDocument, setUploadingDocument] = useState(false)
 
   const adminTitle =
     screen === 'dashboard'
@@ -128,17 +132,20 @@ export function AdminExperience({
     if (!canManageCompany) {
       setCompanyKnowledge([])
       setWidgetConfig(null)
+      setKnowledgeDocuments([])
       return
     }
 
     try {
-      const [knowledgeBase, config] = await Promise.all([
+      const [knowledgeBase, config, documents] = await Promise.all([
         authorizedRequest<Topic[]>('/company/knowledge-base'),
         authorizedRequest<WidgetConfig>('/company/widget-config'),
+        authorizedRequest<KnowledgeDocument[]>('/company/knowledge/documents'),
       ])
 
       setCompanyKnowledge(knowledgeBase)
       setWidgetConfig(config)
+      setKnowledgeDocuments(documents)
       setSettingsState({
         brandColor: config.brandColor,
         welcomeMessage: config.welcomeMessage,
@@ -363,6 +370,52 @@ export function AdminExperience({
       setKnowledgeNotice((error as Error).message)
     }
   }
+
+  const handleUploadDocument = async (event: Event) => {
+    event.preventDefault()
+
+    if (!canManageCompany || !selectedUploadFile) {
+      return
+    }
+
+    try {
+      setUploadingDocument(true)
+      setKnowledgeNotice(null)
+      const formData = new FormData()
+      formData.append('file', selectedUploadFile)
+      await authorizedRequest<KnowledgeDocument>('/company/knowledge/documents', {
+        method: 'POST',
+        body: formData,
+      })
+      setSelectedUploadFile(null)
+      await loadCompanyData()
+      setKnowledgeNotice('Файл добавлен в базу знаний.')
+    } catch (error) {
+      setKnowledgeNotice((error as Error).message)
+    } finally {
+      setUploadingDocument(false)
+    }
+  }
+
+  const handleDeleteDocument = async (documentId: string) => {
+    if (!canManageCompany) {
+      return
+    }
+
+    try {
+      setKnowledgeNotice(null)
+      await authorizedRequest(`/company/knowledge/documents/${documentId}`, {
+        method: 'DELETE',
+      })
+      await loadCompanyData()
+      setKnowledgeNotice('Файл удалён.')
+    } catch (error) {
+      setKnowledgeNotice((error as Error).message)
+    }
+  }
+
+  const formatFileSize = (sizeBytes: number): string =>
+    sizeBytes < 1024 * 1024 ? `${Math.max(1, Math.round(sizeBytes / 1024))} КБ` : `${(sizeBytes / (1024 * 1024)).toFixed(1)} МБ`
 
   const knowledgeArticlesCount = companyKnowledge.reduce((total, topic) => total + topic.articles.length, 0)
 
@@ -835,6 +888,52 @@ export function AdminExperience({
                   ))}
                   {companyKnowledge.length === 0 && <div class="empty-state">Тем пока нет — добавьте первую выше.</div>}
                 </div>
+
+                <h3 class="screen-section-title">Файлы базы знаний</h3>
+                <p class="form-hint">Загрузите PDF или DOCX — текст будет извлечён и добавлен как источник для AI-агента.</p>
+
+                <form class="inline-form" onSubmit={handleUploadDocument}>
+                  <input
+                    class="text-input"
+                    type="file"
+                    accept=".pdf,.docx"
+                    disabled={!canManageCompany || uploadingDocument}
+                    onChange={(event) => {
+                      const input = event.currentTarget as HTMLInputElement
+                      setSelectedUploadFile(input.files && input.files.length > 0 ? input.files[0] : null)
+                    }}
+                  />
+                  <button class="primary-button compact" type="submit" disabled={!canManageCompany || !selectedUploadFile || uploadingDocument}>
+                    {uploadingDocument ? 'Загружаю...' : 'Загрузить файл'}
+                  </button>
+                </form>
+
+                <div class="compact-list">
+                  {knowledgeDocuments.map((document) => (
+                    <article class="card compact-card" key={document.id}>
+                      <div class="topic-header">
+                        <div>
+                          <strong>{document.fileName}</strong>
+                          <p>
+                            {formatFileSize(document.sizeBytes)} · {formatDateTime(document.createdAt)}
+                          </p>
+                        </div>
+                        <span class={`status-pill ${document.status === 'failed' ? 'ai-fallback' : 'ai'}`}>
+                          {document.status === 'failed' ? 'Ошибка обработки' : 'Обработан'}
+                        </span>
+                      </div>
+                      {document.status === 'failed' && document.errorMessage && (
+                        <p class="form-hint">{document.errorMessage}</p>
+                      )}
+                      {canManageCompany && (
+                        <button class="secondary-link" type="button" onClick={() => void handleDeleteDocument(document.id)}>
+                          Удалить
+                        </button>
+                      )}
+                    </article>
+                  ))}
+                  {knowledgeDocuments.length === 0 && <div class="empty-state">Файлы пока не загружены.</div>}
+                </div>
               </div>
             )}
 
@@ -1009,6 +1108,8 @@ export function AdminExperience({
                       setKnowledgeNotice(null)
                       setAddingFaqTopicId(null)
                       setEditingFaqId(null)
+                      setKnowledgeDocuments([])
+                      setSelectedUploadFile(null)
                     }}
                   >
                     Выйти
