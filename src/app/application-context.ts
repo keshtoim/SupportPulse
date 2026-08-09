@@ -22,7 +22,12 @@ import { KnowledgeRetrievalService } from "../application/use-cases/knowledge-re
  */
 export const createApplicationContext = (env: AppEnv) => {
   const logger = pino({
-    level: env.nodeEnv === "production" ? "info" : "debug"
+    level: env.nodeEnv === "production" ? "info" : "debug",
+    // NFR-S-04: без этого pino-http пишет живой JWT из Authorization в каждую строку лога запроса
+    redact: {
+      paths: ["req.headers.authorization"],
+      censor: "[REDACTED]"
+    }
   });
 
   // Если заданы Supabase-переменные — используем Supabase, иначе in-memory (для разработки)
