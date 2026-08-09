@@ -13,7 +13,9 @@ import type {
   MessageRepository,
   RefreshTokenRecord,
   RefreshTokenRepository,
+  ResponseTemplateRepository,
   TenantRepository,
+  TicketNoteRepository,
   TicketRepository,
   TopicRepository,
   UserRepository,
@@ -27,8 +29,10 @@ import type {
   KnowledgeDocument,
   Message,
   RankedKnowledgeChunk,
+  ResponseTemplate,
   Tenant,
   Ticket,
+  TicketNote,
   Topic,
   User,
   WidgetConfig
@@ -52,6 +56,8 @@ class InMemoryDatabase {
   readonly refreshTokens = new Map<string, RefreshTokenRecord>();
   readonly knowledgeDocuments = new Map<string, KnowledgeDocument>();
   readonly knowledgeChunks = new Map<string, KnowledgeChunk>();
+  readonly ticketNotes = new Map<string, TicketNote>();
+  readonly responseTemplates = new Map<string, ResponseTemplate>();
 
   constructor() {
     this.seed();
@@ -423,6 +429,52 @@ export class InMemoryTicketRepository implements TicketRepository {
   }
 }
 
+export class InMemoryTicketNoteRepository implements TicketNoteRepository {
+  constructor(private readonly database: InMemoryDatabase) {}
+
+  async listByTicket(ticketId: string): Promise<TicketNote[]> {
+    return [...this.database.ticketNotes.values()]
+      .filter((note) => note.ticketId === ticketId)
+      .sort((left, right) => left.createdAt.localeCompare(right.createdAt))
+      .map((value) => clone(value));
+  }
+
+  async create(note: TicketNote): Promise<TicketNote> {
+    this.database.ticketNotes.set(note.id, clone(note));
+    return clone(note);
+  }
+}
+
+export class InMemoryResponseTemplateRepository implements ResponseTemplateRepository {
+  constructor(private readonly database: InMemoryDatabase) {}
+
+  async listByTenant(tenantId: string): Promise<ResponseTemplate[]> {
+    return [...this.database.responseTemplates.values()]
+      .filter((template) => template.tenantId === tenantId)
+      .sort((left, right) => left.title.localeCompare(right.title, "ru"))
+      .map((value) => clone(value));
+  }
+
+  async getById(id: string): Promise<ResponseTemplate | null> {
+    const template = this.database.responseTemplates.get(id);
+    return template ? clone(template) : null;
+  }
+
+  async create(template: ResponseTemplate): Promise<ResponseTemplate> {
+    this.database.responseTemplates.set(template.id, clone(template));
+    return clone(template);
+  }
+
+  async update(template: ResponseTemplate): Promise<ResponseTemplate> {
+    this.database.responseTemplates.set(template.id, clone(template));
+    return clone(template);
+  }
+
+  async delete(id: string): Promise<void> {
+    this.database.responseTemplates.delete(id);
+  }
+}
+
 export class InMemoryAuditLogRepository implements AuditLogRepository {
   constructor(private readonly database: InMemoryDatabase) {}
 
@@ -528,6 +580,8 @@ export const createInMemoryRepositories = () => {
     auditLogRepository: new InMemoryAuditLogRepository(database),
     refreshTokenRepository: new InMemoryRefreshTokenRepository(database),
     knowledgeDocumentRepository: new InMemoryKnowledgeDocumentRepository(database),
-    knowledgeChunkRepository: new InMemoryKnowledgeChunkRepository(database)
+    knowledgeChunkRepository: new InMemoryKnowledgeChunkRepository(database),
+    ticketNoteRepository: new InMemoryTicketNoteRepository(database),
+    responseTemplateRepository: new InMemoryResponseTemplateRepository(database)
   };
 };

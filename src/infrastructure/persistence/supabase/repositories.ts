@@ -8,7 +8,9 @@ import type {
   MessageRepository,
   RefreshTokenRecord,
   RefreshTokenRepository,
+  ResponseTemplateRepository,
   TenantRepository,
+  TicketNoteRepository,
   TicketRepository,
   TopicRepository,
   UserRepository,
@@ -22,8 +24,10 @@ import type {
   KnowledgeDocument,
   Message,
   RankedKnowledgeChunk,
+  ResponseTemplate,
   Tenant,
   Ticket,
+  TicketNote,
   Topic,
   User,
   WidgetConfig
@@ -53,6 +57,17 @@ type KnowledgeDocumentRow = {
   created_at: string;
 };
 
+type TicketNoteRow = {
+  note_id: string;
+  ticket_id: string;
+  tenant_id: string;
+  author_user_id: string | null;
+  author_name: string;
+  content: string;
+  created_at: string;
+};
+type ResponseTemplateRow = { template_id: string; tenant_id: string; title: string; content: string; created_at: string; updated_at: string };
+
 // ---------- mappers ----------
 
 const toTenant = (r: TenantRow): Tenant => ({ id: r.tenant_id, name: r.name, isBlocked: r.is_blocked, createdAt: r.created_at });
@@ -65,6 +80,8 @@ const toMessage = (r: MessageRow): Message => ({ id: r.message_id, sessionId: r.
 const toTicket = (r: TicketRow): Ticket => ({ id: r.ticket_id, tenantId: r.tenant_id, sessionId: r.session_id, status: r.status as Ticket["status"], assignedUserId: r.assigned_user_id, reason: r.reason, requestedBy: r.requested_by, closedReason: r.closed_reason, createdAt: r.created_at, updatedAt: r.updated_at });
 const toAuditLog = (r: AuditLogRow): AuditLog => ({ id: r.audit_id, tenantId: r.tenant_id, actorUserId: r.actor_user_id, action: r.action, entityType: r.entity_type, entityId: r.entity_id, payload: r.payload ?? {}, createdAt: r.created_at });
 const toKnowledgeDocument = (r: KnowledgeDocumentRow): KnowledgeDocument => ({ id: r.document_id, tenantId: r.tenant_id, fileName: r.file_name, mimeType: r.mime_type, sizeBytes: r.size_bytes, status: r.status as KnowledgeDocument["status"], extractedText: r.extracted_text, errorMessage: r.error_message, createdAt: r.created_at });
+const toTicketNote = (r: TicketNoteRow): TicketNote => ({ id: r.note_id, ticketId: r.ticket_id, tenantId: r.tenant_id, authorUserId: r.author_user_id, authorName: r.author_name, content: r.content, createdAt: r.created_at });
+const toResponseTemplate = (r: ResponseTemplateRow): ResponseTemplate => ({ id: r.template_id, tenantId: r.tenant_id, title: r.title, content: r.content, createdAt: r.created_at, updatedAt: r.updated_at });
 
 // ---------- helpers ----------
 
@@ -444,6 +461,87 @@ export class SupabaseKnowledgeChunkRepository implements KnowledgeChunkRepositor
   }
 }
 
+export class SupabaseTicketNoteRepository implements TicketNoteRepository {
+  constructor(private readonly db: SupabaseClient) {}
+
+  async listByTicket(ticketId: string): Promise<TicketNote[]> {
+    const { data, error } = await this.db
+      .from("ticket_notes")
+      .select("*")
+      .eq("ticket_id", ticketId)
+      .order("created_at", { ascending: true });
+    if (error) throw new Error(error.message);
+    return (data ?? []).map((r) => toTicketNote(r as TicketNoteRow));
+  }
+
+  async create(note: TicketNote): Promise<TicketNote> {
+    const { data, error } = await this.db
+      .from("ticket_notes")
+      .insert({
+        note_id: note.id,
+        ticket_id: note.ticketId,
+        tenant_id: note.tenantId,
+        author_user_id: note.authorUserId,
+        author_name: note.authorName,
+        content: note.content,
+        created_at: note.createdAt
+      })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return toTicketNote(data as TicketNoteRow);
+  }
+}
+
+export class SupabaseResponseTemplateRepository implements ResponseTemplateRepository {
+  constructor(private readonly db: SupabaseClient) {}
+
+  async listByTenant(tenantId: string): Promise<ResponseTemplate[]> {
+    const { data, error } = await this.db.from("response_templates").select("*").eq("tenant_id", tenantId).order("title");
+    if (error) throw new Error(error.message);
+    return (data ?? []).map((r) => toResponseTemplate(r as ResponseTemplateRow));
+  }
+
+  async getById(id: string): Promise<ResponseTemplate | null> {
+    const { data, error } = await this.db.from("response_templates").select("*").eq("template_id", id).maybeSingle();
+    if (error) throw new Error(error.message);
+    return data ? toResponseTemplate(data as ResponseTemplateRow) : null;
+  }
+
+  async create(template: ResponseTemplate): Promise<ResponseTemplate> {
+    const { data, error } = await this.db
+      .from("response_templates")
+      .insert({
+        template_id: template.id,
+        tenant_id: template.tenantId,
+        title: template.title,
+        content: template.content,
+        created_at: template.createdAt,
+        updated_at: template.updatedAt
+      })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return toResponseTemplate(data as ResponseTemplateRow);
+  }
+
+  async update(template: ResponseTemplate): Promise<ResponseTemplate> {
+    const { data, error } = await this.db
+      .from("response_templates")
+      .update({ title: template.title, content: template.content, updated_at: template.updatedAt })
+      .eq("template_id", template.id)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return toResponseTemplate(data as ResponseTemplateRow);
+  }
+
+  async delete(id: string): Promise<void> {
+    const { error } = await this.db.from("response_templates").delete().eq("template_id", id);
+    if (error) throw new Error(error.message);
+  }
+}
+
 export class SupabaseAuditLogRepository implements AuditLogRepository {
   constructor(private readonly db: SupabaseClient) {}
 
@@ -495,5 +593,7 @@ export const createSupabaseRepositories = (db: SupabaseClient) => ({
   auditLogRepository: new SupabaseAuditLogRepository(db),
   refreshTokenRepository: new SupabaseRefreshTokenRepository(db),
   knowledgeDocumentRepository: new SupabaseKnowledgeDocumentRepository(db),
-  knowledgeChunkRepository: new SupabaseKnowledgeChunkRepository(db)
+  knowledgeChunkRepository: new SupabaseKnowledgeChunkRepository(db),
+  ticketNoteRepository: new SupabaseTicketNoteRepository(db),
+  responseTemplateRepository: new SupabaseResponseTemplateRepository(db)
 });

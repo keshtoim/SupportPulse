@@ -1135,6 +1135,11 @@ html.embed-mode .widget-shell {
   line-height: 1.35;
 }
 
+.note-item {
+  background: #fffaf0;
+  border: 1px solid #f0d999;
+}
+
 .widget-intro-card {
   align-items: start;
 }

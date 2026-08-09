@@ -95,6 +95,8 @@ export const createApplicationContext = (env: AppEnv) => {
       ticketRepository: repositories.ticketRepository,
       sessionRepository: repositories.sessionRepository,
       messageRepository: repositories.messageRepository,
+      ticketNoteRepository: repositories.ticketNoteRepository,
+      responseTemplateRepository: repositories.responseTemplateRepository,
       auditLogRepository: repositories.auditLogRepository,
       idGenerator,
       clock

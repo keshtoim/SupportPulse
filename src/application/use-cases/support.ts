@@ -5,6 +5,8 @@ import { AppError, type AuthenticatedUser, type Ticket, type UserRole } from "..
 export const operatorRoles: UserRole[] = ["operator", "supervisor", "company_admin", "platform_admin"];
 export const companyAdminRoles: UserRole[] = ["company_admin", "platform_admin"];
 export const platformRoles: UserRole[] = ["platform_admin"];
+// Управление шаблонами ответов (FR-044) — супервизор и админ компании, не platform_admin (нет своего тенанта)
+export const templateManagerRoles: UserRole[] = ["supervisor", "company_admin"];
 
 /** Выбрасывает 403, если роль актора не входит в allowedRoles */
 export const ensureRole = (actor: AuthenticatedUser, allowedRoles: UserRole[]): void => {

@@ -7,10 +7,12 @@ import type {
   KnowledgeDocument,
   Message,
   RankedKnowledgeChunk,
+  ResponseTemplate,
   SupportReplyContext,
   SupportReplyDecision,
   Tenant,
   Ticket,
+  TicketNote,
   TicketStatus,
   Topic,
   User,
@@ -143,6 +145,19 @@ export interface KnowledgeChunkRepository {
   createMany(chunks: KnowledgeChunk[]): Promise<void>;
   deleteByDocumentId(documentId: string): Promise<void>;
   searchByTenant(tenantId: string, queryEmbedding: number[], limit: number): Promise<RankedKnowledgeChunk[]>;
+}
+
+export interface TicketNoteRepository {
+  listByTicket(ticketId: string): Promise<TicketNote[]>;
+  create(note: TicketNote): Promise<TicketNote>;
+}
+
+export interface ResponseTemplateRepository {
+  listByTenant(tenantId: string): Promise<ResponseTemplate[]>;
+  getById(id: string): Promise<ResponseTemplate | null>;
+  create(template: ResponseTemplate): Promise<ResponseTemplate>;
+  update(template: ResponseTemplate): Promise<ResponseTemplate>;
+  delete(id: string): Promise<void>;
 }
 
 export interface AuditLogRepository {

@@ -12,7 +12,9 @@ import {
   type KnowledgeDocument,
   type MessageRecord,
   type PlatformMetrics,
+  type ResponseTemplate,
   type Tenant,
+  type TicketNote,
   type TicketRecord,
   type Topic,
   type WidgetConfig,
@@ -70,6 +72,18 @@ export function AdminExperience({
   const [newTenantName, setNewTenantName] = useState('')
   const [tenantsNotice, setTenantsNotice] = useState<string | null>(null)
   const [creatingTenant, setCreatingTenant] = useState(false)
+  const [ticketNotes, setTicketNotes] = useState<TicketNote[]>([])
+  const [newNoteDraft, setNewNoteDraft] = useState('')
+  const [noteError, setNoteError] = useState<string | null>(null)
+  const [templates, setTemplates] = useState<ResponseTemplate[]>([])
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false)
+  const [showTemplateManager, setShowTemplateManager] = useState(false)
+  const [templatesNotice, setTemplatesNotice] = useState<string | null>(null)
+  const [newTemplateTitle, setNewTemplateTitle] = useState('')
+  const [newTemplateContent, setNewTemplateContent] = useState('')
+  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null)
+  const [editTemplateTitle, setEditTemplateTitle] = useState('')
+  const [editTemplateContent, setEditTemplateContent] = useState('')
 
   const adminTitle =
     screen === 'dashboard'
@@ -87,6 +101,7 @@ export function AdminExperience({
                 : 'Профиль'
   const canManageCompany = auth?.user.role === 'company_admin'
   const isPlatformAdmin = auth?.user.role === 'platform_admin'
+  const canManageTemplates = auth?.user.role === 'supervisor' || auth?.user.role === 'company_admin'
   const selectedTicket = tickets.find((ticket) => ticket.id === selectedTicketId) ?? null
 
   const authorizedRequest = async <ResponseType,>(path: string, init: RequestInit = {}) => {
@@ -162,6 +177,30 @@ export function AdminExperience({
     }
   }
 
+  const loadTicketNotes = async (ticketId: string) => {
+    try {
+      setNoteError(null)
+      const result = await authorizedRequest<TicketNote[]>(`/operator/tickets/${ticketId}/notes`)
+      setTicketNotes(result)
+    } catch (error) {
+      setNoteError((error as Error).message)
+    }
+  }
+
+  const loadTemplates = async () => {
+    if (!auth) {
+      setTemplates([])
+      return
+    }
+
+    try {
+      const result = await authorizedRequest<ResponseTemplate[]>('/operator/templates')
+      setTemplates(result)
+    } catch (error) {
+      setTemplatesNotice((error as Error).message)
+    }
+  }
+
   const loadCompanyData = async () => {
     if (!canManageCompany) {
       setCompanyKnowledge([])
@@ -220,15 +259,18 @@ export function AdminExperience({
     void loadTickets()
     void loadCompanyData()
     void loadPlatformData()
+    void loadTemplates()
   }, [auth])
 
   useEffect(() => {
     if (!auth || !selectedTicketId) {
       setTicketMessages([])
+      setTicketNotes([])
       return
     }
 
     void loadTicketMessages(selectedTicketId)
+    void loadTicketNotes(selectedTicketId)
   }, [auth, selectedTicketId])
 
   // Polling: список тикетов обновляется каждые 5с всегда (не только на экране очереди) —
@@ -339,6 +381,95 @@ export function AdminExperience({
       await loadTicketMessages(selectedTicket.id)
     } catch (error) {
       setTicketError((error as Error).message)
+    }
+  }
+
+  const handleAddNote = async (event: Event) => {
+    event.preventDefault()
+
+    if (!selectedTicket || !newNoteDraft.trim()) {
+      return
+    }
+
+    try {
+      setNoteError(null)
+      await authorizedRequest(`/operator/tickets/${selectedTicket.id}/notes`, {
+        method: 'POST',
+        body: JSON.stringify({ content: newNoteDraft.trim() }),
+      })
+      setNewNoteDraft('')
+      await loadTicketNotes(selectedTicket.id)
+    } catch (error) {
+      setNoteError((error as Error).message)
+    }
+  }
+
+  const handleInsertTemplate = (template: ResponseTemplate) => {
+    setReplyDraft(template.content)
+    setShowTemplatePicker(false)
+  }
+
+  const handleCreateTemplate = async (event: Event) => {
+    event.preventDefault()
+
+    if (!canManageTemplates || !newTemplateTitle.trim() || !newTemplateContent.trim()) {
+      return
+    }
+
+    try {
+      setTemplatesNotice(null)
+      await authorizedRequest<ResponseTemplate>('/operator/templates', {
+        method: 'POST',
+        body: JSON.stringify({ title: newTemplateTitle.trim(), content: newTemplateContent.trim() }),
+      })
+      setNewTemplateTitle('')
+      setNewTemplateContent('')
+      await loadTemplates()
+      setTemplatesNotice('Шаблон добавлен.')
+    } catch (error) {
+      setTemplatesNotice((error as Error).message)
+    }
+  }
+
+  const startEditTemplate = (template: ResponseTemplate) => {
+    setEditingTemplateId(template.id)
+    setEditTemplateTitle(template.title)
+    setEditTemplateContent(template.content)
+  }
+
+  const handleUpdateTemplate = async (event: Event, templateId: string) => {
+    event.preventDefault()
+
+    if (!canManageTemplates || !editTemplateTitle.trim() || !editTemplateContent.trim()) {
+      return
+    }
+
+    try {
+      setTemplatesNotice(null)
+      await authorizedRequest<ResponseTemplate>(`/operator/templates/${templateId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ title: editTemplateTitle.trim(), content: editTemplateContent.trim() }),
+      })
+      setEditingTemplateId(null)
+      await loadTemplates()
+      setTemplatesNotice('Шаблон обновлён.')
+    } catch (error) {
+      setTemplatesNotice((error as Error).message)
+    }
+  }
+
+  const handleDeleteTemplate = async (templateId: string) => {
+    if (!canManageTemplates) {
+      return
+    }
+
+    try {
+      setTemplatesNotice(null)
+      await authorizedRequest(`/operator/templates/${templateId}`, { method: 'DELETE' })
+      await loadTemplates()
+      setTemplatesNotice('Шаблон удалён.')
+    } catch (error) {
+      setTemplatesNotice((error as Error).message)
     }
   }
 
@@ -795,9 +926,94 @@ export function AdminExperience({
                   <button class="chip circle" type="button" aria-label="Закрыть" onClick={() => handleChangeTicketStatus('closed')}>
                     ✓
                   </button>
+                  {canManageTemplates && (
+                    <button class="chip" type="button" onClick={() => setShowTemplateManager((current) => !current)}>
+                      {showTemplateManager ? 'Скрыть шаблоны' : 'Управление шаблонами'}
+                    </button>
+                  )}
                 </header>
 
                 {ticketError && <div class="alert-banner error compact">{ticketError}</div>}
+
+                {showTemplateManager && (
+                  <section class="card compact-card">
+                    <strong>Шаблоны ответов</strong>
+                    {templatesNotice && (
+                      <div class={`alert-banner ${templatesNotice.includes('добавл') || templatesNotice.includes('обновл') || templatesNotice.includes('удал') ? 'success' : 'error'} compact`}>
+                        {templatesNotice}
+                      </div>
+                    )}
+
+                    <form class="settings-form" onSubmit={handleCreateTemplate}>
+                      <label class="form-label" for="new-template-title">
+                        Название
+                      </label>
+                      <input
+                        id="new-template-title"
+                        class="text-input"
+                        type="text"
+                        value={newTemplateTitle}
+                        onInput={(event) => setNewTemplateTitle((event.currentTarget as HTMLInputElement).value)}
+                      />
+                      <label class="form-label" for="new-template-content">
+                        Текст ответа
+                      </label>
+                      <textarea
+                        id="new-template-content"
+                        class="text-area"
+                        value={newTemplateContent}
+                        onInput={(event) => setNewTemplateContent((event.currentTarget as HTMLTextAreaElement).value)}
+                      />
+                      <button class="primary-button compact" type="submit">
+                        Добавить шаблон
+                      </button>
+                    </form>
+
+                    <div class="compact-list">
+                      {templates.map((template) => (
+                        <div class="card compact-card" key={template.id}>
+                          {editingTemplateId === template.id ? (
+                            <form class="settings-form" onSubmit={(event) => handleUpdateTemplate(event, template.id)}>
+                              <input
+                                class="text-input"
+                                type="text"
+                                value={editTemplateTitle}
+                                onInput={(event) => setEditTemplateTitle((event.currentTarget as HTMLInputElement).value)}
+                              />
+                              <textarea
+                                class="text-area"
+                                value={editTemplateContent}
+                                onInput={(event) => setEditTemplateContent((event.currentTarget as HTMLTextAreaElement).value)}
+                              />
+                              <div class="thread-actions">
+                                <button class="primary-button compact" type="submit">
+                                  Сохранить
+                                </button>
+                                <button class="secondary-button compact-button" type="button" onClick={() => setEditingTemplateId(null)}>
+                                  Отмена
+                                </button>
+                              </div>
+                            </form>
+                          ) : (
+                            <>
+                              <strong>{template.title}</strong>
+                              <p>{template.content}</p>
+                              <div class="thread-actions">
+                                <button class="secondary-link" type="button" onClick={() => startEditTemplate(template)}>
+                                  Редактировать
+                                </button>
+                                <button class="secondary-link" type="button" onClick={() => void handleDeleteTemplate(template.id)}>
+                                  Удалить
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      ))}
+                      {templates.length === 0 && <div class="empty-state">Шаблонов пока нет — добавьте первый выше.</div>}
+                    </div>
+                  </section>
+                )}
 
                 <div class="ticket-layout">
                   <aside class="ticket-list">
@@ -856,6 +1072,29 @@ export function AdminExperience({
                           )}
                         </div>
 
+                        <div class="thread-actions">
+                          <button class="chip" type="button" onClick={() => setShowTemplatePicker((current) => !current)}>
+                            Шаблоны {showTemplatePicker ? '▲' : '▼'}
+                          </button>
+                        </div>
+
+                        {showTemplatePicker && (
+                          <div class="compact-list">
+                            {templates.map((template) => (
+                              <button
+                                class="ticket-list-item"
+                                type="button"
+                                key={template.id}
+                                onClick={() => handleInsertTemplate(template)}
+                              >
+                                <strong>{template.title}</strong>
+                                <span>{template.content.slice(0, 80)}</span>
+                              </button>
+                            ))}
+                            {templates.length === 0 && <div class="empty-state">Шаблонов пока нет.</div>}
+                          </div>
+                        )}
+
                         <form class="thread-composer" onSubmit={handleSendReply}>
                           <textarea
                             class="text-area"
@@ -867,6 +1106,37 @@ export function AdminExperience({
                             Отправить ответ
                           </button>
                         </form>
+
+                        <section class="card compact-card">
+                          <strong>Внутренние заметки</strong>
+                          <p class="form-hint">Видны только команде поддержки, клиент их не видит.</p>
+                          {noteError && <div class="alert-banner error compact">{noteError}</div>}
+
+                          <div class="compact-list">
+                            {ticketNotes.map((note) => (
+                              <div class="card compact-card note-item" key={note.id}>
+                                <div class="message-caption">
+                                  <strong>{note.authorName}</strong>
+                                  <span>{formatDateTime(note.createdAt)}</span>
+                                </div>
+                                <p>{note.content}</p>
+                              </div>
+                            ))}
+                            {ticketNotes.length === 0 && <div class="empty-state">Заметок пока нет.</div>}
+                          </div>
+
+                          <form class="thread-composer" onSubmit={handleAddNote}>
+                            <textarea
+                              class="text-area"
+                              placeholder="Заметка для команды..."
+                              value={newNoteDraft}
+                              onInput={(event) => setNewNoteDraft((event.currentTarget as HTMLTextAreaElement).value)}
+                            />
+                            <button class="secondary-button compact-button" type="submit">
+                              Добавить заметку
+                            </button>
+                          </form>
+                        </section>
                       </>
                     ) : (
                       <div class="empty-state">Выберите тикет из списка слева.</div>
@@ -1321,6 +1591,16 @@ export function AdminExperience({
                       setPlatformMetrics(null)
                       setTenantsNotice(null)
                       setNewTenantName('')
+                      setTicketNotes([])
+                      setNewNoteDraft('')
+                      setNoteError(null)
+                      setTemplates([])
+                      setShowTemplatePicker(false)
+                      setShowTemplateManager(false)
+                      setTemplatesNotice(null)
+                      setNewTemplateTitle('')
+                      setNewTemplateContent('')
+                      setEditingTemplateId(null)
                     }}
                   >
                     Выйти

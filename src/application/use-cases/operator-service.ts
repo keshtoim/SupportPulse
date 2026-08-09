@@ -1,11 +1,22 @@
-import type { AuditLogRepository, Clock, DialogueSessionRepository, IdGenerator, MessageRepository, TicketRepository } from "../ports";
-import { AppError, type AuthenticatedUser, type TicketStatus } from "../../domain/model";
-import { addAuditEntry, ensureRole, ensureTenantAccess, mapTicketPayload, operatorRoles } from "./support";
+import type {
+  AuditLogRepository,
+  Clock,
+  DialogueSessionRepository,
+  IdGenerator,
+  MessageRepository,
+  ResponseTemplateRepository,
+  TicketNoteRepository,
+  TicketRepository
+} from "../ports";
+import { AppError, type AuthenticatedUser, type ResponseTemplate, type TicketNote, type TicketStatus } from "../../domain/model";
+import { addAuditEntry, ensureRole, ensureTenantAccess, mapTicketPayload, operatorRoles, templateManagerRoles } from "./support";
 
 type OperatorServiceDependencies = {
   ticketRepository: TicketRepository;
   sessionRepository: DialogueSessionRepository;
   messageRepository: MessageRepository;
+  ticketNoteRepository: TicketNoteRepository;
+  responseTemplateRepository: ResponseTemplateRepository;
   auditLogRepository: AuditLogRepository;
   idGenerator: IdGenerator;
   clock: Clock;
@@ -183,6 +194,138 @@ export class OperatorWorkbenchApplicationService {
       ticket: nextTicket,
       message
     };
+  }
+
+  /** Возвращает внутренние заметки по тикету (FR-043) — не пересекаются с сообщениями клиента */
+  async listTicketNotes(actor: AuthenticatedUser, ticketId: string) {
+    ensureRole(actor, operatorRoles);
+    const ticket = await this.requireTicket(actor, ticketId);
+    return this.dependencies.ticketNoteRepository.listByTicket(ticket.id);
+  }
+
+  /** Добавляет внутреннюю заметку к тикету, не видимую клиенту */
+  async addTicketNote(actor: AuthenticatedUser, ticketId: string, content: string) {
+    ensureRole(actor, operatorRoles);
+    const ticket = await this.requireTicket(actor, ticketId);
+    const normalizedContent = content.trim();
+
+    if (!normalizedContent) {
+      throw new AppError("Заметка не должна быть пустой.", 400, "EMPTY_NOTE");
+    }
+
+    const note: TicketNote = {
+      id: this.dependencies.idGenerator.next("note"),
+      ticketId: ticket.id,
+      tenantId: ticket.tenantId,
+      authorUserId: actor.id,
+      authorName: actor.name,
+      content: normalizedContent,
+      createdAt: this.dependencies.clock.now().toISOString()
+    };
+
+    const created = await this.dependencies.ticketNoteRepository.create(note);
+
+    await addAuditEntry(this.dependencies.auditLogRepository, this.dependencies.idGenerator, this.dependencies.clock, {
+      tenantId: ticket.tenantId,
+      actorUserId: actor.id,
+      action: "ticket_note_added",
+      entityType: "ticket",
+      entityId: ticket.id,
+      payload: { noteId: created.id }
+    });
+
+    return created;
+  }
+
+  /** Возвращает шаблоны ответов тенанта (FR-044); platform_admin не привязан к тенанту — пустой список */
+  async listTemplates(actor: AuthenticatedUser) {
+    ensureRole(actor, operatorRoles);
+
+    if (actor.role === "platform_admin") {
+      return [];
+    }
+
+    return this.dependencies.responseTemplateRepository.listByTenant(actor.tenantId as string);
+  }
+
+  /** Создаёт шаблон ответа (супервизор/админ компании) */
+  async createTemplate(actor: AuthenticatedUser, payload: { title: string; content: string }) {
+    ensureRole(actor, templateManagerRoles);
+    const tenantId = actor.tenantId as string;
+    const now = this.dependencies.clock.now().toISOString();
+
+    const template: ResponseTemplate = {
+      id: this.dependencies.idGenerator.next("template"),
+      tenantId,
+      title: payload.title.trim(),
+      content: payload.content.trim(),
+      createdAt: now,
+      updatedAt: now
+    };
+
+    const created = await this.dependencies.responseTemplateRepository.create(template);
+
+    await addAuditEntry(this.dependencies.auditLogRepository, this.dependencies.idGenerator, this.dependencies.clock, {
+      tenantId,
+      actorUserId: actor.id,
+      action: "template_created",
+      entityType: "response_template",
+      entityId: created.id,
+      payload: { title: created.title }
+    });
+
+    return created;
+  }
+
+  /** Обновляет шаблон ответа (супервизор/админ компании) */
+  async updateTemplate(actor: AuthenticatedUser, templateId: string, payload: { title: string; content: string }) {
+    ensureRole(actor, templateManagerRoles);
+    const tenantId = actor.tenantId as string;
+    const template = await this.dependencies.responseTemplateRepository.getById(templateId);
+
+    if (!template || template.tenantId !== tenantId) {
+      throw new AppError("Шаблон не найден.", 404, "TEMPLATE_NOT_FOUND");
+    }
+
+    const updated = await this.dependencies.responseTemplateRepository.update({
+      ...template,
+      title: payload.title.trim(),
+      content: payload.content.trim(),
+      updatedAt: this.dependencies.clock.now().toISOString()
+    });
+
+    await addAuditEntry(this.dependencies.auditLogRepository, this.dependencies.idGenerator, this.dependencies.clock, {
+      tenantId,
+      actorUserId: actor.id,
+      action: "template_updated",
+      entityType: "response_template",
+      entityId: templateId,
+      payload: { title: updated.title }
+    });
+
+    return updated;
+  }
+
+  /** Удаляет шаблон ответа (супервизор/админ компании) */
+  async deleteTemplate(actor: AuthenticatedUser, templateId: string) {
+    ensureRole(actor, templateManagerRoles);
+    const tenantId = actor.tenantId as string;
+    const template = await this.dependencies.responseTemplateRepository.getById(templateId);
+
+    if (!template || template.tenantId !== tenantId) {
+      throw new AppError("Шаблон не найден.", 404, "TEMPLATE_NOT_FOUND");
+    }
+
+    await this.dependencies.responseTemplateRepository.delete(templateId);
+
+    await addAuditEntry(this.dependencies.auditLogRepository, this.dependencies.idGenerator, this.dependencies.clock, {
+      tenantId,
+      actorUserId: actor.id,
+      action: "template_deleted",
+      entityType: "response_template",
+      entityId: templateId,
+      payload: { title: template.title }
+    });
   }
 
   /** Загружает тикет и проверяет право доступа актора к нему */

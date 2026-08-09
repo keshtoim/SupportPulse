@@ -109,6 +109,25 @@ export type TicketRecord = {
   updatedAt: string
 }
 
+export type TicketNote = {
+  id: string
+  ticketId: string
+  tenantId: string
+  authorUserId: string | null
+  authorName: string
+  content: string
+  createdAt: string
+}
+
+export type ResponseTemplate = {
+  id: string
+  tenantId: string
+  title: string
+  content: string
+  createdAt: string
+  updatedAt: string
+}
+
 export type SessionMessagesResponse = {
   session: SessionRecord
   ticket: TicketRecord | null

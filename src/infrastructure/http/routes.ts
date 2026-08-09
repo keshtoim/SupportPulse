@@ -85,6 +85,20 @@ const changeTicketStatusSchema = z.object({
   closedReason: z.string().optional()
 });
 
+const addTicketNoteSchema = z.object({
+  content: z.string().min(1)
+});
+
+const createTemplateSchema = z.object({
+  title: z.string().min(2),
+  content: z.string().min(2)
+});
+
+const updateTemplateSchema = z.object({
+  title: z.string().min(2),
+  content: z.string().min(2)
+});
+
 export const createApiRouter = (context: ApplicationContext) => {
   const router = Router();
   const authMiddleware = createAuthMiddleware({
@@ -251,6 +265,57 @@ export const createApiRouter = (context: ApplicationContext) => {
       const payload = sendMessageSchema.parse(request.body);
       const result = await context.operatorService.sendMessage(actor, getSingleValue(request.params.ticketId, "ticketId"), payload.content);
       response.json(result);
+    })
+  );
+  operatorRouter.get(
+    "/tickets/:ticketId/notes",
+    asyncHandler(async (request, response) => {
+      const actor = getRequiredAuthUser(request);
+      const result = await context.operatorService.listTicketNotes(actor, getSingleValue(request.params.ticketId, "ticketId"));
+      response.json(result);
+    })
+  );
+  operatorRouter.post(
+    "/tickets/:ticketId/notes",
+    asyncHandler(async (request, response) => {
+      const actor = getRequiredAuthUser(request);
+      const payload = addTicketNoteSchema.parse(request.body);
+      const result = await context.operatorService.addTicketNote(actor, getSingleValue(request.params.ticketId, "ticketId"), payload.content);
+      response.status(201).json(result);
+    })
+  );
+  operatorRouter.get(
+    "/templates",
+    asyncHandler(async (request, response) => {
+      const actor = getRequiredAuthUser(request);
+      const result = await context.operatorService.listTemplates(actor);
+      response.json(result);
+    })
+  );
+  operatorRouter.post(
+    "/templates",
+    asyncHandler(async (request, response) => {
+      const actor = getRequiredAuthUser(request);
+      const payload = createTemplateSchema.parse(request.body);
+      const result = await context.operatorService.createTemplate(actor, payload);
+      response.status(201).json(result);
+    })
+  );
+  operatorRouter.put(
+    "/templates/:templateId",
+    asyncHandler(async (request, response) => {
+      const actor = getRequiredAuthUser(request);
+      const payload = updateTemplateSchema.parse(request.body);
+      const result = await context.operatorService.updateTemplate(actor, getSingleValue(request.params.templateId, "templateId"), payload);
+      response.json(result);
+    })
+  );
+  operatorRouter.delete(
+    "/templates/:templateId",
+    asyncHandler(async (request, response) => {
+      const actor = getRequiredAuthUser(request);
+      await context.operatorService.deleteTemplate(actor, getSingleValue(request.params.templateId, "templateId"));
+      response.status(204).send();
     })
   );
   router.use("/operator", operatorRouter);

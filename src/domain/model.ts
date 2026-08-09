@@ -132,6 +132,27 @@ export interface Ticket {
   updatedAt: string;
 }
 
+/** Внутренняя заметка оператора к тикету — не видна клиенту (FR-043) */
+export interface TicketNote {
+  id: string;
+  ticketId: string;
+  tenantId: string;
+  authorUserId: string | null;
+  authorName: string;
+  content: string;
+  createdAt: string;
+}
+
+/** Шаблон быстрого ответа оператора (FR-044) */
+export interface ResponseTemplate {
+  id: string;
+  tenantId: string;
+  title: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 /** Запись журнала аудита */
 export interface AuditLog {
   id: string;
