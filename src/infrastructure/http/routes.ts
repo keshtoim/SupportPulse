@@ -462,6 +462,14 @@ export const createApiRouter = (context: ApplicationContext) => {
       response.json(result);
     })
   );
+  platformRouter.get(
+    "/audit-log",
+    asyncHandler(async (request, response) => {
+      const actor = getRequiredAuthUser(request);
+      const result = await context.platformService.listAuditLog(actor);
+      response.json(result);
+    })
+  );
   router.use("/platform", platformRouter);
 
   router.use((_, __, next) => next(new AppError("Маршрут не найден.", 404, "ROUTE_NOT_FOUND")));

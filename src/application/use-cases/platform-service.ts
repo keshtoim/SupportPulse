@@ -124,4 +124,10 @@ export class PlatformAdministrationApplicationService {
       }
     };
   }
+
+  /** Журнал аудита по всей платформе (FR-072); самые свежие записи первыми */
+  async listAuditLog(actor: AuthenticatedUser) {
+    ensureRole(actor, platformRoles);
+    return this.dependencies.auditLogRepository.listAll();
+  }
 }

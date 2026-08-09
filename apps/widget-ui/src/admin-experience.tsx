@@ -8,6 +8,7 @@ import {
   senderLabel,
   statusLabel,
   type AdminScreen,
+  type AuditLogEntry,
   type AuthResponse,
   type FaqArticle,
   type KnowledgeDocument,
@@ -78,6 +79,7 @@ export function AdminExperience({
   const [newTenantName, setNewTenantName] = useState('')
   const [tenantsNotice, setTenantsNotice] = useState<string | null>(null)
   const [creatingTenant, setCreatingTenant] = useState(false)
+  const [auditLog, setAuditLog] = useState<AuditLogEntry[]>([])
   const [ticketNotes, setTicketNotes] = useState<TicketNote[]>([])
   const [newNoteDraft, setNewNoteDraft] = useState('')
   const [noteError, setNoteError] = useState<string | null>(null)
@@ -241,17 +243,20 @@ export function AdminExperience({
     if (!isPlatformAdmin) {
       setTenants([])
       setPlatformMetrics(null)
+      setAuditLog([])
       return
     }
 
     try {
-      const [tenantList, metrics] = await Promise.all([
+      const [tenantList, metrics, auditEntries] = await Promise.all([
         authorizedRequest<Tenant[]>('/platform/tenants'),
         authorizedRequest<PlatformMetrics>('/platform/metrics'),
+        authorizedRequest<AuditLogEntry[]>('/platform/audit-log'),
       ])
 
       setTenants(tenantList)
       setPlatformMetrics(metrics)
+      setAuditLog(auditEntries)
     } catch (error) {
       setTenantsNotice((error as Error).message)
     }
@@ -1508,6 +1513,28 @@ export function AdminExperience({
                   ))}
                   {tenants.length === 0 && <div class="empty-state">Тенантов пока нет — создайте первого выше.</div>}
                 </div>
+
+                <h3 class="screen-section-title">Журнал аудита</h3>
+                <div class="compact-list">
+                  {auditLog.slice(0, 100).map((entry) => (
+                    <article class="card compact-card" key={entry.id}>
+                      <div class="topic-header">
+                        <div>
+                          <strong>{entry.action}</strong>
+                          <p>
+                            {entry.entityType} {entry.entityId.slice(0, 8)}
+                            {entry.tenantId ? ` · тенант ${entry.tenantId.slice(0, 8)}` : ''}
+                          </p>
+                        </div>
+                        <span>{formatDateTime(entry.createdAt)}</span>
+                      </div>
+                      {Object.keys(entry.payload).length > 0 && (
+                        <p class="form-hint">{JSON.stringify(entry.payload)}</p>
+                      )}
+                    </article>
+                  ))}
+                  {auditLog.length === 0 && <div class="empty-state">Записей аудита пока нет.</div>}
+                </div>
               </div>
             )}
 
@@ -1689,6 +1716,7 @@ export function AdminExperience({
                       setUnseenTicketCount(0)
                       setTenants([])
                       setPlatformMetrics(null)
+                      setAuditLog([])
                       setTenantsNotice(null)
                       setNewTenantName('')
                       setTicketNotes([])

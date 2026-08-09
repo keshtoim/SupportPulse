@@ -557,6 +557,12 @@ export class SupabaseAuditLogRepository implements AuditLogRepository {
     if (error) throw new Error(error.message);
     return (data ?? []).map((r) => toAuditLog(r as AuditLogRow));
   }
+
+  async listAll(): Promise<AuditLog[]> {
+    const { data, error } = await this.db.from("audit_logs").select("*").order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return (data ?? []).map((r) => toAuditLog(r as AuditLogRow));
+  }
 }
 
 export class SupabaseRefreshTokenRepository implements RefreshTokenRepository {

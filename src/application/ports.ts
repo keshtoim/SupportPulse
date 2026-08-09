@@ -163,6 +163,7 @@ export interface ResponseTemplateRepository {
 export interface AuditLogRepository {
   add(entry: AuditLog): Promise<AuditLog>;
   listByTenant(tenantId: string | null): Promise<AuditLog[]>;
+  listAll(): Promise<AuditLog[]>;
 }
 
 export interface RefreshTokenRepository {

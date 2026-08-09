@@ -489,6 +489,12 @@ export class InMemoryAuditLogRepository implements AuditLogRepository {
       .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
       .map((value) => clone(value));
   }
+
+  async listAll(): Promise<AuditLog[]> {
+    return [...this.database.auditLogs.values()]
+      .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
+      .map((value) => clone(value));
+  }
 }
 
 export class InMemoryKnowledgeDocumentRepository implements KnowledgeDocumentRepository {

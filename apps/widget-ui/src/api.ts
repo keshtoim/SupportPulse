@@ -52,6 +52,17 @@ export type PlatformMetrics = {
   }
 }
 
+export type AuditLogEntry = {
+  id: string
+  tenantId: string | null
+  actorUserId: string | null
+  action: string
+  entityType: string
+  entityId: string
+  payload: Record<string, unknown>
+  createdAt: string
+}
+
 export type KnowledgeDocumentStatus = 'processed' | 'failed'
 
 export type KnowledgeDocument = {
