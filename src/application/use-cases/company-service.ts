@@ -10,6 +10,7 @@ import type {
 } from "../ports";
 import { AppError, type AuthenticatedUser, type FaqArticle, type KnowledgeDocument, type Topic, type WidgetConfig } from "../../domain/model";
 import { addAuditEntry, companyAdminRoles, ensureRole } from "./support";
+import type { KnowledgeIndexingService } from "./knowledge-indexing-service";
 
 // Ограничения на загружаемые файлы базы знаний
 const MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024;
@@ -24,6 +25,7 @@ type CompanyServiceDependencies = {
   widgetConfigRepository: WidgetConfigRepository;
   knowledgeDocumentRepository: KnowledgeDocumentRepository;
   documentTextExtractor: DocumentTextExtractor;
+  knowledgeIndexingService: KnowledgeIndexingService;
   auditLogRepository: AuditLogRepository;
   idGenerator: IdGenerator;
   clock: Clock;
@@ -201,8 +203,8 @@ export class CompanyAdministrationApplicationService {
   }
 
   /**
-   * Загружает файл (PDF/DOCX), извлекает из него текст и сохраняет как источник базы знаний.
-   * Само использование текста в AI-ответах — задача RAG-пайплайна (пока не реализован).
+   * Загружает файл (PDF/DOCX), извлекает из него текст, сохраняет как источник базы знаний
+   * и (если включены эмбеддинги) индексирует для векторного RAG-поиска.
    */
   async uploadKnowledgeDocument(actor: AuthenticatedUser, file: { buffer: Buffer; mimeType: string; fileName: string; sizeBytes: number }) {
     ensureRole(actor, companyAdminRoles);
@@ -241,6 +243,13 @@ export class CompanyAdministrationApplicationService {
 
     const created = await this.dependencies.knowledgeDocumentRepository.create(document);
 
+    // Индексация — best-effort: сбой эмбеддинга не должен ронять уже успешную загрузку документа
+    try {
+      await this.dependencies.knowledgeIndexingService.indexDocument(created);
+    } catch {
+      // Документ остаётся сохранённым, просто временно недоступен для RAG-поиска
+    }
+
     await addAuditEntry(this.dependencies.auditLogRepository, this.dependencies.idGenerator, this.dependencies.clock, {
       tenantId,
       actorUserId: actor.id,
@@ -267,6 +276,7 @@ export class CompanyAdministrationApplicationService {
     }
 
     await this.dependencies.knowledgeDocumentRepository.delete(documentId);
+    await this.dependencies.knowledgeIndexingService.removeDocument(documentId);
 
     await addAuditEntry(this.dependencies.auditLogRepository, this.dependencies.idGenerator, this.dependencies.clock, {
       tenantId,

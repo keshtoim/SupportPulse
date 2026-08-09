@@ -62,6 +62,25 @@ export interface KnowledgeDocument {
   createdAt: string;
 }
 
+/** Фрагмент текста документа с векторным представлением — единица индекса для RAG-поиска */
+export interface KnowledgeChunk {
+  id: string;
+  tenantId: string;
+  documentId: string;
+  chunkIndex: number;
+  content: string;
+  embedding: number[] | null;
+  createdAt: string;
+}
+
+/** Фрагмент документа, найденный векторным поиском по релевантности вопросу */
+export interface RankedKnowledgeChunk {
+  chunkId: string;
+  documentId: string;
+  content: string;
+  similarity: number;
+}
+
 /** Настройки виджета для конкретного тенанта */
 export interface WidgetConfig {
   id: string;
@@ -144,6 +163,8 @@ export interface SupportReplyContext {
   question: string;
   faqArticles: FaqArticle[];
   history: Message[];
+  /** Фрагменты загруженных документов, найденные векторным поиском; пусто, если RAG выключен (нет ключа эмбеддингов) */
+  retrievedChunks?: RankedKnowledgeChunk[];
 }
 
 /** Решение AI: ответить на основе FAQ / запросить уточнение / эскалировать к оператору */
@@ -152,6 +173,8 @@ export type SupportReplyDecision =
       kind: "answer";
       message: string;
       matchedArticleIds: string[];
+      /** ID фрагментов документов, использованных при ответе (через RAG) */
+      matchedChunkIds?: string[];
       confidence: number;
     }
   | {

@@ -3,8 +3,10 @@ import type {
   AuthenticatedUser,
   DialogueSession,
   FaqArticle,
+  KnowledgeChunk,
   KnowledgeDocument,
   Message,
+  RankedKnowledgeChunk,
   SupportReplyContext,
   SupportReplyDecision,
   Tenant,
@@ -64,6 +66,13 @@ export interface SupportAnswerService {
 /** Извлекает текст из загруженного файла базы знаний (PDF/DOCX) */
 export interface DocumentTextExtractor {
   extract(file: { buffer: Buffer; mimeType: string; fileName: string }): Promise<string>;
+}
+
+/** Строит векторные представления текста для семантического поиска (RAG). Без ключа — выключен (fallback-режим) */
+export interface EmbeddingService {
+  isEnabled(): boolean;
+  embed(text: string): Promise<number[]>;
+  embedBatch(texts: string[]): Promise<number[][]>;
 }
 
 // --- Репозитории — абстракции над хранилищем данных ---
@@ -128,6 +137,12 @@ export interface KnowledgeDocumentRepository {
   getById(id: string): Promise<KnowledgeDocument | null>;
   create(document: KnowledgeDocument): Promise<KnowledgeDocument>;
   delete(id: string): Promise<void>;
+}
+
+export interface KnowledgeChunkRepository {
+  createMany(chunks: KnowledgeChunk[]): Promise<void>;
+  deleteByDocumentId(documentId: string): Promise<void>;
+  searchByTenant(tenantId: string, queryEmbedding: number[], limit: number): Promise<RankedKnowledgeChunk[]>;
 }
 
 export interface AuditLogRepository {

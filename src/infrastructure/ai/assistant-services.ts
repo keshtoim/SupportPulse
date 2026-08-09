@@ -1,12 +1,17 @@
 import { ChatPromptTemplate } from "@langchain/core/prompts";
 import { ChatOpenAI } from "@langchain/openai";
 import type { SupportAnswerService } from "../../application/ports";
-import type { FaqArticle, Message, SupportReplyContext } from "../../domain/model";
+import type { FaqArticle, Message, RankedKnowledgeChunk, SupportReplyContext } from "../../domain/model";
 
 type RankedArticle = {
   article: FaqArticle;
   score: number;
 };
+
+// Минимальное косинусное сходство, при котором фрагмент документа считается релевантным ответу.
+// Подобрано ориентировочно (типичный диапазон для OpenAI text-embedding-3-small) — при появлении
+// реального трафика с LLM-ключом стоит откалибровать по факту, здесь это сделать нельзя (нет сети до OpenAI).
+const CHUNK_MATCH_THRESHOLD = 0.3;
 
 // Ключевые слова, по которым определяется запрос на подключение живого оператора
 const operatorRequestPatterns = ["оператор", "человек", "менеджер", "специалист", "живой", "сотрудник"];
@@ -72,14 +77,19 @@ const mapRecentMessages = (history: Message[]) =>
     .map((message) => `${message.senderType}: ${message.content}`)
     .join("\n");
 
+/** Форматирует фрагменты документов (RAG) для вставки в промпт LLM */
+const formatChunksForPrompt = (chunks: RankedKnowledgeChunk[]) =>
+  chunks.map((chunk, index) => `Фрагмент документа ${index + 1}: ${chunk.content}`).join("\n\n");
+
 /**
- * AI-сервис поддержки на основе RAG поверх FAQ.
- * Если OpenAI ключ не задан — работает в режиме fallback (возвращает лучшую статью напрямую).
+ * AI-сервис поддержки: keyword-ранжирование по FAQ + опциональный векторный RAG-поиск по документам.
+ * Если OpenAI ключ не задан — работает в режиме fallback (возвращает лучшую статью/фрагмент напрямую).
  * Логика решения:
  *  1. Запрос оператора → escalate
- *  2. Нет совпадений в FAQ → escalate (low_confidence)
- *  3. Вопрос слишком короткий → clarify
- *  4. Иначе → answer (через LLM или fallback)
+ *  2. Нет совпадений в FAQ, но есть релевантный фрагмент документа (RAG) → answer по документу
+ *  3. Нет совпадений нигде → clarify
+ *  4. Есть совпадение в FAQ, но вопрос слишком короткий → clarify
+ *  5. Иначе → answer (через LLM с учётом FAQ и документов, или fallback)
  */
 export class FaqRagAnswerService implements SupportAnswerService {
   private readonly llm?: ChatOpenAI;
@@ -109,8 +119,14 @@ export class FaqRagAnswerService implements SupportAnswerService {
 
     const rankedArticles = rankArticles(context.question, context.faqArticles);
     const topArticles = rankedArticles.filter((item) => item.score > 0).slice(0, 3);
+    const strongChunks = (context.retrievedChunks ?? []).filter((chunk) => chunk.similarity >= CHUNK_MATCH_THRESHOLD);
 
     if (topArticles.length === 0) {
+      // В FAQ совпадений нет, но векторный поиск нашёл релевантный фрагмент загруженного документа
+      if (strongChunks.length > 0) {
+        return this.answerFromChunks(context, strongChunks);
+      }
+
       return {
         kind: "clarify" as const,
         message: "Не нашёл подходящего ответа в базе знаний. Попробуйте уточнить вопрос — или мне позвать оператора?"
@@ -153,14 +169,20 @@ export class FaqRagAnswerService implements SupportAnswerService {
       ].join("\n")
     );
 
+    const matchedChunkIds = strongChunks.map((chunk) => chunk.chunkId);
+    const knowledgeSections = [
+      topArticles.map((item, index) => `${index + 1}. Вопрос: ${item.article.question}\nОтвет: ${item.article.answer}`).join("\n\n")
+    ];
+    if (strongChunks.length > 0) {
+      knowledgeSections.push(formatChunksForPrompt(strongChunks));
+    }
+
     try {
       const response = await prompt.pipe(this.llm).invoke({
         tenantName: context.tenant.name,
         toneOfVoice: context.widgetConfig.toneOfVoice,
         history: mapRecentMessages(context.history),
-        knowledge: topArticles
-          .map((item, index) => `${index + 1}. Вопрос: ${item.article.question}\nОтвет: ${item.article.answer}`)
-          .join("\n\n"),
+        knowledge: knowledgeSections.join("\n\n"),
         question: context.question
       });
 
@@ -170,6 +192,7 @@ export class FaqRagAnswerService implements SupportAnswerService {
         kind: "answer" as const,
         message: text,
         matchedArticleIds,
+        matchedChunkIds,
         confidence: Math.min(0.98, 0.45 + topArticles[0].score / 4)
       };
     } catch {
@@ -178,7 +201,72 @@ export class FaqRagAnswerService implements SupportAnswerService {
         kind: "answer" as const,
         message: fallbackAnswer,
         matchedArticleIds,
+        matchedChunkIds,
         confidence: Math.min(0.9, 0.4 + topArticles[0].score / 4)
+      };
+    }
+  }
+
+  /**
+   * Отвечает на основе фрагментов документов, когда в FAQ совпадений не нашлось.
+   * Без LLM возвращает лучший фрагмент как есть — это сырой текст документа, а не готовый ответ,
+   * поэтому уверенность ниже, чем у FAQ-фолбэка.
+   */
+  private async answerFromChunks(context: SupportReplyContext, strongChunks: RankedKnowledgeChunk[]) {
+    const matchedChunkIds = strongChunks.map((chunk) => chunk.chunkId);
+    const bestChunk = strongChunks[0];
+
+    if (!this.llm) {
+      return {
+        kind: "answer" as const,
+        message: bestChunk.content,
+        matchedArticleIds: [],
+        matchedChunkIds,
+        confidence: Math.min(0.7, bestChunk.similarity)
+      };
+    }
+
+    const prompt = ChatPromptTemplate.fromTemplate(
+      [
+        "Ты AI-помощник платформы поддержки компании {tenantName}.",
+        "Стиль ответа: {toneOfVoice}.",
+        "Отвечай только на основе фрагментов документов ниже. Не придумывай новые факты.",
+        "Если данных недостаточно, честно скажи об этом и попроси уточнение.",
+        "Контекст последних сообщений:",
+        "{history}",
+        "",
+        "База знаний:",
+        "{knowledge}",
+        "",
+        "Вопрос клиента: {question}"
+      ].join("\n")
+    );
+
+    try {
+      const response = await prompt.pipe(this.llm).invoke({
+        tenantName: context.tenant.name,
+        toneOfVoice: context.widgetConfig.toneOfVoice,
+        history: mapRecentMessages(context.history),
+        knowledge: formatChunksForPrompt(strongChunks),
+        question: context.question
+      });
+
+      const text = extractResponseText(response) || bestChunk.content;
+
+      return {
+        kind: "answer" as const,
+        message: text,
+        matchedArticleIds: [],
+        matchedChunkIds,
+        confidence: Math.min(0.9, bestChunk.similarity + 0.1)
+      };
+    } catch {
+      return {
+        kind: "answer" as const,
+        message: bestChunk.content,
+        matchedArticleIds: [],
+        matchedChunkIds,
+        confidence: Math.min(0.7, bestChunk.similarity)
       };
     }
   }

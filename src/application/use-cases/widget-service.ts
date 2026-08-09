@@ -13,6 +13,7 @@ import type {
 } from "../ports";
 import { AppError, type DialogueSession, type Message, type Ticket } from "../../domain/model";
 import { addAuditEntry, ensureTenantActive } from "./support";
+import type { KnowledgeRetrievalService } from "./knowledge-retrieval-service";
 
 type WidgetServiceDependencies = {
   tenantRepository: TenantRepository;
@@ -24,6 +25,7 @@ type WidgetServiceDependencies = {
   ticketRepository: TicketRepository;
   auditLogRepository: AuditLogRepository;
   answerService: SupportAnswerService;
+  knowledgeRetrievalService: KnowledgeRetrievalService;
   idGenerator: IdGenerator;
   clock: Clock;
 };
@@ -160,16 +162,18 @@ export class WidgetSupportApplicationService {
       };
     }
 
-    const [history, faqArticles] = await Promise.all([
+    const [history, faqArticles, retrievedChunks] = await Promise.all([
       this.dependencies.messageRepository.listBySession(session.id),
       this.dependencies.faqRepository.listByTenant(tenantId),
+      this.dependencies.knowledgeRetrievalService.search(tenantId, normalizedContent),
     ]);
     const replyDecision = await this.dependencies.answerService.answer({
       tenant,
       widgetConfig,
       question: normalizedContent,
       faqArticles,
-      history
+      history,
+      retrievedChunks
     });
 
     if (replyDecision.kind === "answer") {
@@ -188,6 +192,7 @@ export class WidgetSupportApplicationService {
         createdAt: this.dependencies.clock.now().toISOString(),
         metadata: {
           matchedArticleIds: replyDecision.matchedArticleIds,
+          matchedChunkIds: replyDecision.matchedChunkIds ?? [],
           confidence: replyDecision.confidence
         }
       });
@@ -200,6 +205,7 @@ export class WidgetSupportApplicationService {
         entityId: session.id,
         payload: {
           matchedArticleIds: replyDecision.matchedArticleIds,
+          matchedChunkIds: replyDecision.matchedChunkIds ?? [],
           confidence: replyDecision.confidence
         }
       }).catch(() => {});

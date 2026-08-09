@@ -3,6 +3,7 @@ import type {
   AuditLogRepository,
   DialogueSessionRepository,
   FaqRepository,
+  KnowledgeChunkRepository,
   KnowledgeDocumentRepository,
   MessageRepository,
   RefreshTokenRecord,
@@ -17,8 +18,10 @@ import type {
   AuditLog,
   DialogueSession,
   FaqArticle,
+  KnowledgeChunk,
   KnowledgeDocument,
   Message,
+  RankedKnowledgeChunk,
   Tenant,
   Ticket,
   Topic,
@@ -400,6 +403,47 @@ export class SupabaseKnowledgeDocumentRepository implements KnowledgeDocumentRep
   }
 }
 
+export class SupabaseKnowledgeChunkRepository implements KnowledgeChunkRepository {
+  constructor(private readonly db: SupabaseClient) {}
+
+  async createMany(chunks: KnowledgeChunk[]): Promise<void> {
+    if (chunks.length === 0) return;
+
+    const { error } = await this.db.from("knowledge_chunks").insert(
+      chunks.map((chunk) => ({
+        chunk_id: chunk.id,
+        tenant_id: chunk.tenantId,
+        document_id: chunk.documentId,
+        chunk_index: chunk.chunkIndex,
+        content: chunk.content,
+        embedding: chunk.embedding,
+        created_at: chunk.createdAt
+      }))
+    );
+    if (error) throw new Error(error.message);
+  }
+
+  async deleteByDocumentId(documentId: string): Promise<void> {
+    const { error } = await this.db.from("knowledge_chunks").delete().eq("document_id", documentId);
+    if (error) throw new Error(error.message);
+  }
+
+  async searchByTenant(tenantId: string, queryEmbedding: number[], limit: number): Promise<RankedKnowledgeChunk[]> {
+    const { data, error } = await this.db.rpc("match_knowledge_chunks", {
+      p_tenant_id: tenantId,
+      p_query_embedding: queryEmbedding,
+      p_match_count: limit
+    });
+    if (error) throw new Error(error.message);
+    return ((data ?? []) as { chunk_id: string; document_id: string; content: string; similarity: number }[]).map((r) => ({
+      chunkId: r.chunk_id,
+      documentId: r.document_id,
+      content: r.content,
+      similarity: r.similarity
+    }));
+  }
+}
+
 export class SupabaseAuditLogRepository implements AuditLogRepository {
   constructor(private readonly db: SupabaseClient) {}
 
@@ -450,5 +494,6 @@ export const createSupabaseRepositories = (db: SupabaseClient) => ({
   ticketRepository: new SupabaseTicketRepository(db),
   auditLogRepository: new SupabaseAuditLogRepository(db),
   refreshTokenRepository: new SupabaseRefreshTokenRepository(db),
-  knowledgeDocumentRepository: new SupabaseKnowledgeDocumentRepository(db)
+  knowledgeDocumentRepository: new SupabaseKnowledgeDocumentRepository(db),
+  knowledgeChunkRepository: new SupabaseKnowledgeChunkRepository(db)
 });

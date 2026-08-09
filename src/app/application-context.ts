@@ -6,11 +6,14 @@ import { PlatformAdministrationApplicationService } from "../application/use-cas
 import { WidgetSupportApplicationService } from "../application/use-cases/widget-service";
 import type { AppEnv } from "../config/env";
 import { FaqRagAnswerService } from "../infrastructure/ai/assistant-services";
+import { OpenAiEmbeddingService } from "../infrastructure/ai/embedding-service";
 import { BcryptPasswordService, JwtTokenService } from "../infrastructure/auth/security";
 import { FileDocumentTextExtractor } from "../infrastructure/documents/text-extractor";
 import { SystemClock, UuidIdGenerator, createInMemoryRepositories } from "../infrastructure/persistence/in-memory/app-memory";
 import { createSupabaseClient, SupabaseIdGenerator } from "../infrastructure/persistence/supabase/client";
 import { createSupabaseRepositories, SupabaseAuditLogRepository } from "../infrastructure/persistence/supabase/repositories";
+import { KnowledgeIndexingService } from "../application/use-cases/knowledge-indexing-service";
+import { KnowledgeRetrievalService } from "../application/use-cases/knowledge-retrieval-service";
 
 /**
  * Точка сборки всех зависимостей приложения (DI-контейнер).
@@ -50,6 +53,19 @@ export const createApplicationContext = (env: AppEnv) => {
   });
   const documentTextExtractor = new FileDocumentTextExtractor();
 
+  // Тот же ключ, что и для LLM: без него эмбеддинги выключены, RAG деградирует до keyword-поиска по FAQ
+  const embeddingService = new OpenAiEmbeddingService({ apiKey: env.openAiApiKey });
+  const knowledgeIndexingService = new KnowledgeIndexingService({
+    embeddingService,
+    knowledgeChunkRepository: repositories.knowledgeChunkRepository,
+    idGenerator,
+    clock
+  });
+  const knowledgeRetrievalService = new KnowledgeRetrievalService({
+    embeddingService,
+    knowledgeChunkRepository: repositories.knowledgeChunkRepository
+  });
+
   return {
     env,
     logger,
@@ -71,6 +87,7 @@ export const createApplicationContext = (env: AppEnv) => {
       ticketRepository: repositories.ticketRepository,
       auditLogRepository: repositories.auditLogRepository,
       answerService,
+      knowledgeRetrievalService,
       idGenerator,
       clock
     }),
@@ -88,6 +105,7 @@ export const createApplicationContext = (env: AppEnv) => {
       widgetConfigRepository: repositories.widgetConfigRepository,
       knowledgeDocumentRepository: repositories.knowledgeDocumentRepository,
       documentTextExtractor,
+      knowledgeIndexingService,
       auditLogRepository: repositories.auditLogRepository,
       idGenerator,
       clock

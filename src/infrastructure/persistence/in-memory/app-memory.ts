@@ -8,6 +8,7 @@ import type {
   DialogueSessionRepository,
   FaqRepository,
   IdGenerator,
+  KnowledgeChunkRepository,
   KnowledgeDocumentRepository,
   MessageRepository,
   RefreshTokenRecord,
@@ -22,14 +23,17 @@ import type {
   AuditLog,
   DialogueSession,
   FaqArticle,
+  KnowledgeChunk,
   KnowledgeDocument,
   Message,
+  RankedKnowledgeChunk,
   Tenant,
   Ticket,
   Topic,
   User,
   WidgetConfig
 } from "../../../domain/model";
+import { cosineSimilarity } from "../../ai/cosine-similarity";
 
 // Глубокое клонирование гарантирует изоляцию данных между запросами
 const clone = <Value>(value: Value): Value => structuredClone(value);
@@ -47,6 +51,7 @@ class InMemoryDatabase {
   readonly auditLogs = new Map<string, AuditLog>();
   readonly refreshTokens = new Map<string, RefreshTokenRecord>();
   readonly knowledgeDocuments = new Map<string, KnowledgeDocument>();
+  readonly knowledgeChunks = new Map<string, KnowledgeChunk>();
 
   constructor() {
     this.seed();
@@ -459,6 +464,37 @@ export class InMemoryKnowledgeDocumentRepository implements KnowledgeDocumentRep
   }
 }
 
+export class InMemoryKnowledgeChunkRepository implements KnowledgeChunkRepository {
+  constructor(private readonly database: InMemoryDatabase) {}
+
+  async createMany(chunks: KnowledgeChunk[]): Promise<void> {
+    for (const chunk of chunks) {
+      this.database.knowledgeChunks.set(chunk.id, clone(chunk));
+    }
+  }
+
+  async deleteByDocumentId(documentId: string): Promise<void> {
+    for (const [id, chunk] of this.database.knowledgeChunks) {
+      if (chunk.documentId === documentId) {
+        this.database.knowledgeChunks.delete(id);
+      }
+    }
+  }
+
+  async searchByTenant(tenantId: string, queryEmbedding: number[], limit: number): Promise<RankedKnowledgeChunk[]> {
+    return [...this.database.knowledgeChunks.values()]
+      .filter((chunk) => chunk.tenantId === tenantId && chunk.embedding)
+      .map((chunk) => ({
+        chunkId: chunk.id,
+        documentId: chunk.documentId,
+        content: chunk.content,
+        similarity: cosineSimilarity(chunk.embedding as number[], queryEmbedding)
+      }))
+      .sort((left, right) => right.similarity - left.similarity)
+      .slice(0, limit);
+  }
+}
+
 export class InMemoryRefreshTokenRepository implements RefreshTokenRepository {
   constructor(private readonly database: InMemoryDatabase) {}
 
@@ -491,6 +527,7 @@ export const createInMemoryRepositories = () => {
     ticketRepository: new InMemoryTicketRepository(database),
     auditLogRepository: new InMemoryAuditLogRepository(database),
     refreshTokenRepository: new InMemoryRefreshTokenRepository(database),
-    knowledgeDocumentRepository: new InMemoryKnowledgeDocumentRepository(database)
+    knowledgeDocumentRepository: new InMemoryKnowledgeDocumentRepository(database),
+    knowledgeChunkRepository: new InMemoryKnowledgeChunkRepository(database)
   };
 };
