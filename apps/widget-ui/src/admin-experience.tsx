@@ -3,6 +3,7 @@ import {
   DEMO_ADMIN_EMAIL,
   DEMO_PASSWORD,
   apiRequest,
+  closeCategoryLabel,
   formatDateTime,
   senderLabel,
   statusLabel,
@@ -14,6 +15,7 @@ import {
   type PlatformMetrics,
   type ResponseTemplate,
   type Tenant,
+  type TicketCloseCategory,
   type TicketNote,
   type TicketRecord,
   type Topic,
@@ -46,6 +48,10 @@ export function AdminExperience({
   const [ticketMessages, setTicketMessages] = useState<MessageRecord[]>([])
   const [messagesLoading, setMessagesLoading] = useState(false)
   const [replyDraft, setReplyDraft] = useState('')
+  const [closingTicket, setClosingTicket] = useState(false)
+  const [closeCategory, setCloseCategory] = useState<TicketCloseCategory | ''>('')
+  const [closeReasonText, setCloseReasonText] = useState('')
+  const [closeError, setCloseError] = useState<string | null>(null)
   const [companyKnowledge, setCompanyKnowledge] = useState<Topic[]>([])
   const [widgetConfig, setWidgetConfig] = useState<WidgetConfig | null>(null)
   const [settingsState, setSettingsState] = useState({
@@ -262,6 +268,14 @@ export function AdminExperience({
     void loadTemplates()
   }, [auth])
 
+  // Смена выбранного тикета закрывает панель закрытия — она относится к конкретному тикету
+  useEffect(() => {
+    setClosingTicket(false)
+    setCloseCategory('')
+    setCloseReasonText('')
+    setCloseError(null)
+  }, [selectedTicketId])
+
   useEffect(() => {
     if (!auth || !selectedTicketId) {
       setTicketMessages([])
@@ -349,15 +363,39 @@ export function AdminExperience({
     try {
       await authorizedRequest<TicketRecord>(`/operator/tickets/${selectedTicket.id}/status`, {
         method: 'POST',
-        body: JSON.stringify({
-          status,
-          closedReason: status === 'closed' ? 'resolved_from_admin_panel' : undefined,
-        }),
+        body: JSON.stringify({ status }),
       })
       await loadTickets()
       await loadTicketMessages(selectedTicket.id)
     } catch (error) {
       setTicketError((error as Error).message)
+    }
+  }
+
+  const handleCloseTicket = async (event: Event) => {
+    event.preventDefault()
+
+    if (!selectedTicket || !closeCategory) {
+      return
+    }
+
+    try {
+      setCloseError(null)
+      await authorizedRequest<TicketRecord>(`/operator/tickets/${selectedTicket.id}/status`, {
+        method: 'POST',
+        body: JSON.stringify({
+          status: 'closed',
+          closedCategory: closeCategory,
+          closedReason: closeReasonText.trim() || undefined,
+        }),
+      })
+      setClosingTicket(false)
+      setCloseCategory('')
+      setCloseReasonText('')
+      await loadTickets()
+      await loadTicketMessages(selectedTicket.id)
+    } catch (error) {
+      setCloseError((error as Error).message)
     }
   }
 
@@ -923,7 +961,13 @@ export function AdminExperience({
                   <button class="chip" type="button" onClick={() => handleChangeTicketStatus('waiting_client')}>
                     Ждёт клиента
                   </button>
-                  <button class="chip circle" type="button" aria-label="Закрыть" onClick={() => handleChangeTicketStatus('closed')}>
+                  <button
+                    class="chip circle"
+                    type="button"
+                    aria-label="Закрыть"
+                    disabled={!selectedTicket}
+                    onClick={() => setClosingTicket((current) => !current)}
+                  >
                     ✓
                   </button>
                   {canManageTemplates && (
@@ -1038,7 +1082,15 @@ export function AdminExperience({
                         <div class="thread-header">
                           <div>
                             <h3>Тикет {selectedTicket.id.slice(0, 8)}</h3>
-                            <p>{statusLabel[selectedTicket.status]}</p>
+                            <p>
+                              {statusLabel[selectedTicket.status]}
+                              {selectedTicket.status === 'closed' && selectedTicket.closedCategory && (
+                                <> · {closeCategoryLabel[selectedTicket.closedCategory]}</>
+                              )}
+                              {selectedTicket.status === 'closed' && selectedTicket.closedReason && (
+                                <> · {selectedTicket.closedReason}</>
+                              )}
+                            </p>
                           </div>
                           <div class="thread-actions">
                             <button class="secondary-button compact-button" type="button" onClick={handleClaimTicket}>
@@ -1053,6 +1105,54 @@ export function AdminExperience({
                             </button>
                           </div>
                         </div>
+
+                        {closingTicket && (
+                          <form class="settings-form" onSubmit={handleCloseTicket}>
+                            <label class="form-label" for="close-category">
+                              Категория закрытия
+                            </label>
+                            <select
+                              id="close-category"
+                              class="text-input"
+                              value={closeCategory}
+                              onChange={(event) => setCloseCategory((event.currentTarget as HTMLSelectElement).value as TicketCloseCategory)}
+                            >
+                              <option value="">Выберите категорию...</option>
+                              {(Object.entries(closeCategoryLabel) as [TicketCloseCategory, string][]).map(([value, label]) => (
+                                <option value={value} key={value}>
+                                  {label}
+                                </option>
+                              ))}
+                            </select>
+                            <label class="form-label" for="close-reason">
+                              Комментарий (необязательно)
+                            </label>
+                            <textarea
+                              id="close-reason"
+                              class="text-area"
+                              value={closeReasonText}
+                              onInput={(event) => setCloseReasonText((event.currentTarget as HTMLTextAreaElement).value)}
+                            />
+                            {closeError && <div class="alert-banner error compact">{closeError}</div>}
+                            <div class="thread-actions">
+                              <button class="primary-button compact" type="submit" disabled={!closeCategory}>
+                                Закрыть тикет
+                              </button>
+                              <button
+                                class="secondary-button compact-button"
+                                type="button"
+                                onClick={() => {
+                                  setClosingTicket(false)
+                                  setCloseCategory('')
+                                  setCloseReasonText('')
+                                  setCloseError(null)
+                                }}
+                              >
+                                Отмена
+                              </button>
+                            </div>
+                          </form>
+                        )}
 
                         <div class="thread-log">
                           {messagesLoading ? (
@@ -1601,6 +1701,10 @@ export function AdminExperience({
                       setNewTemplateTitle('')
                       setNewTemplateContent('')
                       setEditingTemplateId(null)
+                      setClosingTicket(false)
+                      setCloseCategory('')
+                      setCloseReasonText('')
+                      setCloseError(null)
                     }}
                   >
                     Выйти

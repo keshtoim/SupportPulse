@@ -42,7 +42,7 @@ type FaqRow = { faq_id: string; topic_id: string; tenant_id: string; question: s
 type WidgetConfigRow = { config_id: string; tenant_id: string; brand_color: string; welcome_message: string; tone_of_voice: string; show_privacy_notice: boolean; privacy_notice: string | null; created_at: string; updated_at: string };
 type SessionRow = { session_id: string; tenant_id: string; state: string; customer_name: string | null; customer_email: string | null; last_knowledge_article_ids: string[]; created_at: string; updated_at: string };
 type MessageRow = { message_id: string; session_id: string; ticket_id: string | null; sender_type: string; content: string; metadata: Record<string, unknown>; created_at: string };
-type TicketRow = { ticket_id: string; tenant_id: string; session_id: string; status: string; assigned_user_id: string | null; reason: string; requested_by: string; closed_reason: string | null; created_at: string; updated_at: string };
+type TicketRow = { ticket_id: string; tenant_id: string; session_id: string; status: string; assigned_user_id: string | null; reason: string; requested_by: string; closed_category: string | null; closed_reason: string | null; created_at: string; updated_at: string };
 type AuditLogRow = { audit_id: string; tenant_id: string | null; actor_user_id: string | null; action: string; entity_type: string; entity_id: string; payload: Record<string, unknown>; created_at: string };
 type RefreshTokenRow = { token: string; user_id: string; expires_at: string };
 type KnowledgeDocumentRow = {
@@ -77,7 +77,7 @@ const toFaq = (r: FaqRow): FaqArticle => ({ id: r.faq_id, topicId: r.topic_id, t
 const toWidgetConfig = (r: WidgetConfigRow): WidgetConfig => ({ id: r.config_id, tenantId: r.tenant_id, brandColor: r.brand_color, welcomeMessage: r.welcome_message, toneOfVoice: r.tone_of_voice, showPrivacyNotice: r.show_privacy_notice, privacyNotice: r.privacy_notice, createdAt: r.created_at, updatedAt: r.updated_at });
 const toSession = (r: SessionRow): DialogueSession => ({ id: r.session_id, tenantId: r.tenant_id, state: r.state as DialogueSession["state"], customerName: r.customer_name, customerEmail: r.customer_email, lastKnowledgeArticleIds: r.last_knowledge_article_ids ?? [], createdAt: r.created_at, updatedAt: r.updated_at });
 const toMessage = (r: MessageRow): Message => ({ id: r.message_id, sessionId: r.session_id, ticketId: r.ticket_id, senderType: r.sender_type as Message["senderType"], content: r.content, metadata: r.metadata ?? {}, createdAt: r.created_at });
-const toTicket = (r: TicketRow): Ticket => ({ id: r.ticket_id, tenantId: r.tenant_id, sessionId: r.session_id, status: r.status as Ticket["status"], assignedUserId: r.assigned_user_id, reason: r.reason, requestedBy: r.requested_by, closedReason: r.closed_reason, createdAt: r.created_at, updatedAt: r.updated_at });
+const toTicket = (r: TicketRow): Ticket => ({ id: r.ticket_id, tenantId: r.tenant_id, sessionId: r.session_id, status: r.status as Ticket["status"], assignedUserId: r.assigned_user_id, reason: r.reason, requestedBy: r.requested_by, closedCategory: r.closed_category as Ticket["closedCategory"], closedReason: r.closed_reason, createdAt: r.created_at, updatedAt: r.updated_at });
 const toAuditLog = (r: AuditLogRow): AuditLog => ({ id: r.audit_id, tenantId: r.tenant_id, actorUserId: r.actor_user_id, action: r.action, entityType: r.entity_type, entityId: r.entity_id, payload: r.payload ?? {}, createdAt: r.created_at });
 const toKnowledgeDocument = (r: KnowledgeDocumentRow): KnowledgeDocument => ({ id: r.document_id, tenantId: r.tenant_id, fileName: r.file_name, mimeType: r.mime_type, sizeBytes: r.size_bytes, status: r.status as KnowledgeDocument["status"], extractedText: r.extracted_text, errorMessage: r.error_message, createdAt: r.created_at });
 const toTicketNote = (r: TicketNoteRow): TicketNote => ({ id: r.note_id, ticketId: r.ticket_id, tenantId: r.tenant_id, authorUserId: r.author_user_id, authorName: r.author_name, content: r.content, createdAt: r.created_at });
@@ -352,7 +352,7 @@ export class SupabaseTicketRepository implements TicketRepository {
 
   async create(ticket: Ticket): Promise<Ticket> {
     for (let attempt = 0; attempt <= 2; attempt++) {
-      const { data, error } = await this.db.from("tickets").insert({ ticket_id: ticket.id, tenant_id: ticket.tenantId, session_id: ticket.sessionId, status: ticket.status, assigned_user_id: ticket.assignedUserId, reason: ticket.reason, requested_by: ticket.requestedBy, closed_reason: ticket.closedReason, created_at: ticket.createdAt, updated_at: ticket.updatedAt }).select().single();
+      const { data, error } = await this.db.from("tickets").insert({ ticket_id: ticket.id, tenant_id: ticket.tenantId, session_id: ticket.sessionId, status: ticket.status, assigned_user_id: ticket.assignedUserId, reason: ticket.reason, requested_by: ticket.requestedBy, closed_category: ticket.closedCategory, closed_reason: ticket.closedReason, created_at: ticket.createdAt, updated_at: ticket.updatedAt }).select().single();
       if (!error) return toTicket(data as TicketRow);
       if (error.message.includes("duplicate key")) {
         const { data: existing } = await this.db.from("tickets").select().eq("ticket_id", ticket.id).single();
@@ -369,7 +369,7 @@ export class SupabaseTicketRepository implements TicketRepository {
 
   async update(ticket: Ticket): Promise<Ticket> {
     const data = await withRetry(async () =>
-      this.db.from("tickets").update({ status: ticket.status, assigned_user_id: ticket.assignedUserId, closed_reason: ticket.closedReason, updated_at: ticket.updatedAt }).eq("ticket_id", ticket.id).select().single()
+      this.db.from("tickets").update({ status: ticket.status, assigned_user_id: ticket.assignedUserId, closed_category: ticket.closedCategory, closed_reason: ticket.closedReason, updated_at: ticket.updatedAt }).eq("ticket_id", ticket.id).select().single()
     ) as TicketRow;
     return toTicket(data);
   }

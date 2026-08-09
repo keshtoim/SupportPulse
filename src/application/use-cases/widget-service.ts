@@ -327,6 +327,7 @@ export class WidgetSupportApplicationService {
       assignedUserId: null,
       reason: escalation.reason,
       requestedBy: escalation.requestedBy,
+      closedCategory: null,
       closedReason: null,
       createdAt: now,
       updatedAt: now

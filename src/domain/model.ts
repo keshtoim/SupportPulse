@@ -2,6 +2,8 @@
 export type UserRole = "operator" | "supervisor" | "company_admin" | "platform_admin";
 // Статусы тикета поддержки
 export type TicketStatus = "new" | "in_progress" | "waiting_client" | "closed";
+// Категория закрытия тикета (FR-046)
+export type TicketCloseCategory = "resolved" | "no_response" | "duplicate" | "out_of_scope" | "other";
 // Состояния сессии диалога клиента
 export type SessionState = "ai_active" | "waiting_operator" | "operator_connected" | "closed";
 // Типы отправителей сообщений
@@ -127,6 +129,7 @@ export interface Ticket {
   assignedUserId: string | null;
   reason: string;
   requestedBy: string;
+  closedCategory: TicketCloseCategory | null;
   closedReason: string | null;
   createdAt: string;
   updatedAt: string;

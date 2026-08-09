@@ -4,6 +4,7 @@ export type AppMode = 'widget' | 'admin'
 export type SenderType = 'client' | 'ai' | 'operator' | 'system'
 export type UserRole = 'operator' | 'supervisor' | 'company_admin' | 'platform_admin'
 export type TicketStatus = 'new' | 'in_progress' | 'waiting_client' | 'closed'
+export type TicketCloseCategory = 'resolved' | 'no_response' | 'duplicate' | 'out_of_scope' | 'other'
 
 export type WidgetConfig = {
   id: string
@@ -104,6 +105,7 @@ export type TicketRecord = {
   assignedUserId: string | null
   reason: string
   requestedBy: string
+  closedCategory: TicketCloseCategory | null
   closedReason: string | null
   createdAt: string
   updatedAt: string
@@ -168,6 +170,14 @@ export const statusLabel: Record<TicketStatus, string> = {
   in_progress: 'В работе',
   waiting_client: 'Ждёт клиента',
   closed: 'Закрыт',
+}
+
+export const closeCategoryLabel: Record<TicketCloseCategory, string> = {
+  resolved: 'Решено',
+  no_response: 'Клиент не ответил',
+  duplicate: 'Дубликат',
+  out_of_scope: 'Вне зоны ответственности',
+  other: 'Другое',
 }
 
 export const senderLabel: Record<SenderType, string> = {

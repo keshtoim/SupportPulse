@@ -8,6 +8,16 @@ import type { ApplicationContext } from "./application-context";
 import { AppError } from "../domain/model";
 import { createApiRouter } from "../infrastructure/http/routes";
 
+// Duck-typing вместо `instanceof ZodError`: под tsx/ESM-CJS интероп "zod" иногда
+// подгружается двумя разными инстансами модуля, и instanceof ломается, хотя
+// err.name/err.issues соответствуют форме ZodError.
+type ZodLikeError = { name: string; issues: { path: (string | number)[]; message: string }[] };
+const isZodError = (error: unknown): error is ZodLikeError =>
+  typeof error === "object" &&
+  error !== null &&
+  (error as { name?: unknown }).name === "ZodError" &&
+  Array.isArray((error as { issues?: unknown }).issues);
+
 /**
  * Создаёт Express-приложение:
  * - CORS, JSON, HTTP-логгер
@@ -50,6 +60,15 @@ export const createApp = (context: ApplicationContext) => {
         error: error.code,
         message: error.message,
         details: error.details ?? null
+      });
+      return;
+    }
+
+    if (isZodError(error)) {
+      response.status(400).json({
+        error: "VALIDATION_ERROR",
+        message: error.issues[0]?.message ?? "Некорректные данные запроса.",
+        details: error.issues.map((issue) => ({ path: issue.path.join("."), message: issue.message }))
       });
       return;
     }

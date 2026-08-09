@@ -8,7 +8,7 @@ import type {
   TicketNoteRepository,
   TicketRepository
 } from "../ports";
-import { AppError, type AuthenticatedUser, type ResponseTemplate, type TicketNote, type TicketStatus } from "../../domain/model";
+import { AppError, type AuthenticatedUser, type ResponseTemplate, type TicketCloseCategory, type TicketNote, type TicketStatus } from "../../domain/model";
 import { addAuditEntry, ensureRole, ensureTenantAccess, mapTicketPayload, operatorRoles, templateManagerRoles } from "./support";
 
 type OperatorServiceDependencies = {
@@ -90,6 +90,7 @@ export class OperatorWorkbenchApplicationService {
     ticketId: string,
     payload: {
       status: TicketStatus;
+      closedCategory?: TicketCloseCategory;
       closedReason?: string;
     }
   ) {
@@ -105,7 +106,9 @@ export class OperatorWorkbenchApplicationService {
     const nextTicket = await this.dependencies.ticketRepository.update({
       ...ticket,
       status: payload.status,
-      closedReason: payload.status === "closed" ? payload.closedReason?.trim() || "resolved" : null,
+      // Категория/причина закрытия действительны только пока тикет закрыт — при переоткрытии сбрасываются
+      closedCategory: payload.status === "closed" ? payload.closedCategory ?? "other" : null,
+      closedReason: payload.status === "closed" ? payload.closedReason?.trim() || null : null,
       updatedAt: now
     });
 
@@ -127,6 +130,7 @@ export class OperatorWorkbenchApplicationService {
       entityId: ticket.id,
       payload: {
         status: payload.status,
+        closedCategory: nextTicket.closedCategory ?? "",
         closedReason: nextTicket.closedReason ?? ""
       }
     });

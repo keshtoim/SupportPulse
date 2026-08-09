@@ -24,6 +24,7 @@ const getSingleValue = (value: string | string[] | undefined, fieldName: string)
     .parse(Array.isArray(value) ? value[0] : value);
 
 const ticketStatuses = ["new", "in_progress", "waiting_client", "closed"] as const;
+const ticketCloseCategories = ["resolved", "no_response", "duplicate", "out_of_scope", "other"] as const;
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -80,10 +81,16 @@ const blockTenantSchema = z.object({
   isBlocked: z.boolean()
 });
 
-const changeTicketStatusSchema = z.object({
-  status: z.enum(ticketStatuses),
-  closedReason: z.string().optional()
-});
+const changeTicketStatusSchema = z
+  .object({
+    status: z.enum(ticketStatuses),
+    closedCategory: z.enum(ticketCloseCategories).optional(),
+    closedReason: z.string().optional()
+  })
+  .refine((data) => data.status !== "closed" || !!data.closedCategory, {
+    message: "При закрытии тикета нужно указать категорию.",
+    path: ["closedCategory"]
+  });
 
 const addTicketNoteSchema = z.object({
   content: z.string().min(1)

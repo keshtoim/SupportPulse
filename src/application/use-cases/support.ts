@@ -90,6 +90,7 @@ export const mapTicketPayload = (ticket: Ticket) => ({
   assignedUserId: ticket.assignedUserId,
   reason: ticket.reason,
   requestedBy: ticket.requestedBy,
+  closedCategory: ticket.closedCategory,
   closedReason: ticket.closedReason,
   createdAt: ticket.createdAt,
   updatedAt: ticket.updatedAt
