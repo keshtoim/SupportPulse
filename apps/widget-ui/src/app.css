@@ -639,6 +639,48 @@ html.embed-mode .widget-shell {
   background: #edf2ff;
 }
 
+.dashboard-tile,
+.mini-nav-button {
+  position: relative;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #e0433d;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+
+.ticket-toast {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 50;
+  max-width: 320px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #1d2430;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 8px 22px rgba(25, 42, 73, 0.28);
+  animation: toast-in 0.2s ease-out;
+}
+
+@keyframes toast-in {
+  from { transform: translateY(-8px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
 .admin-content {
   padding: 18px;
   background: #fff;

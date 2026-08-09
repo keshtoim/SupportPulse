@@ -35,6 +35,9 @@ export function AdminExperience({
   const [tickets, setTickets] = useState<TicketRecord[]>([])
   const [ticketsLoading, setTicketsLoading] = useState(false)
   const [ticketError, setTicketError] = useState<string | null>(null)
+  const [, setSeenTicketIds] = useState<Set<string> | null>(null)
+  const [newTicketToast, setNewTicketToast] = useState<string | null>(null)
+  const [unseenTicketCount, setUnseenTicketCount] = useState(0)
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null)
   const [ticketMessages, setTicketMessages] = useState<MessageRecord[]>([])
   const [messagesLoading, setMessagesLoading] = useState(false)
@@ -108,6 +111,27 @@ export function AdminExperience({
       if (selectedTicketId && !result.some((ticket) => ticket.id === selectedTicketId)) {
         setSelectedTicketId(result[0]?.id ?? null)
       }
+
+      // Уведомление о новых тикетах (FR-060): пропускаем самый первый опрос — это просто начальный снимок, не "новые" тикеты
+      setSeenTicketIds((previousSeen) => {
+        const nextSeen = new Set(result.map((item) => item.id))
+
+        if (previousSeen !== null) {
+          const arrived = result.filter((item) => !previousSeen.has(item.id))
+
+          if (arrived.length > 0) {
+            setNewTicketToast(
+              arrived.length === 1 ? `Новый тикет в очереди: ${arrived[0].reason}` : `Новых тикетов в очереди: ${arrived.length}`,
+            )
+
+            if (screen !== 'chats') {
+              setUnseenTicketCount((count) => count + arrived.length)
+            }
+          }
+        }
+
+        return nextSeen
+      })
     } catch (error) {
       if (!silent) setTicketError((error as Error).message)
     } finally {
@@ -176,12 +200,27 @@ export function AdminExperience({
     void loadTicketMessages(selectedTicketId)
   }, [auth, selectedTicketId])
 
-  // Polling: список тикетов обновляется каждые 5с на экране очереди
+  // Polling: список тикетов обновляется каждые 5с всегда (не только на экране очереди) —
+  // иначе оператор не узнает о новом тикете, если сейчас смотрит другой экран
   useEffect(() => {
-    if (!auth || screen !== 'chats') return
+    if (!auth) return
     const id = setInterval(() => void loadTickets(true), 5000)
     return () => clearInterval(id)
   }, [auth, screen, selectedTicketId])
+
+  // Тост с уведомлением о новом тикете исчезает сам через 6 секунд
+  useEffect(() => {
+    if (!newTicketToast) return
+    const id = setTimeout(() => setNewTicketToast(null), 6000)
+    return () => clearTimeout(id)
+  }, [newTicketToast])
+
+  // Открыв очередь, оператор считается "увидевшим" все накопленные тикеты
+  useEffect(() => {
+    if (screen === 'chats') {
+      setUnseenTicketCount(0)
+    }
+  }, [screen])
 
   // Polling: переписка обновляется каждые 5с пока открыт тикет
   useEffect(() => {
@@ -421,6 +460,7 @@ export function AdminExperience({
 
   return (
     <section class={`admin-shell ${!active ? 'is-hidden' : ''}`}>
+      {newTicketToast && <div class="ticket-toast">{newTicketToast}</div>}
       <aside class="admin-sidebar">
         <div class="panel-header">
           <img class="app-icon xs" src="/app-icon.png" alt="SupportPulse" />
@@ -490,6 +530,9 @@ export function AdminExperience({
               },
             ].map((item) => (
               <button class="dashboard-tile" type="button" key={item.title} onClick={() => onScreenChange(item.screen)}>
+                {item.screen === 'chats' && unseenTicketCount > 0 && (
+                  <span class="notification-badge">{unseenTicketCount > 9 ? '9+' : unseenTicketCount}</span>
+                )}
                 <div class="tile-icon">{item.icon}</div>
                 <span>{item.title}</span>
               </button>
@@ -558,6 +601,9 @@ export function AdminExperience({
               key={item.target}
               onClick={() => onScreenChange(item.target)}
             >
+              {item.target === 'chats' && unseenTicketCount > 0 && (
+                <span class="notification-badge">{unseenTicketCount > 9 ? '9+' : unseenTicketCount}</span>
+              )}
               {item.icon}
             </button>
           ))}
@@ -1110,6 +1156,9 @@ export function AdminExperience({
                       setEditingFaqId(null)
                       setKnowledgeDocuments([])
                       setSelectedUploadFile(null)
+                      setSeenTicketIds(null)
+                      setNewTicketToast(null)
+                      setUnseenTicketCount(0)
                     }}
                   >
                     Выйти
