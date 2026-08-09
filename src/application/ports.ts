@@ -70,6 +70,12 @@ export interface DocumentTextExtractor {
   extract(file: { buffer: Buffer; mimeType: string; fileName: string }): Promise<string>;
 }
 
+/** Отправка email-уведомлений (FR-062). Без SMTP-конфигурации — выключен (fallback-режим, как AI/эмбеддинги) */
+export interface EmailService {
+  isEnabled(): boolean;
+  send(params: { to: string[]; subject: string; text: string }): Promise<void>;
+}
+
 /** Строит векторные представления текста для семантического поиска (RAG). Без ключа — выключен (fallback-режим) */
 export interface EmbeddingService {
   isEnabled(): boolean;

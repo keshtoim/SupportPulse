@@ -158,7 +158,10 @@ export class CompanyAdministrationApplicationService {
   /** Сохраняет конфигурацию виджета (upsert: создаёт, если ещё нет) */
   async updateWidgetConfig(
     actor: AuthenticatedUser,
-    payload: Pick<WidgetConfig, "brandColor" | "welcomeMessage" | "toneOfVoice" | "showPrivacyNotice" | "privacyNotice">
+    payload: Pick<
+      WidgetConfig,
+      "brandColor" | "welcomeMessage" | "toneOfVoice" | "showPrivacyNotice" | "privacyNotice" | "emailNotificationsEnabled"
+    >
   ) {
     ensureRole(actor, companyAdminRoles);
     const tenantId = actor.tenantId as string;
@@ -189,7 +192,8 @@ export class CompanyAdministrationApplicationService {
       entityId: savedConfig.id,
       payload: {
         brandColor: savedConfig.brandColor,
-        showPrivacyNotice: savedConfig.showPrivacyNotice
+        showPrivacyNotice: savedConfig.showPrivacyNotice,
+        emailNotificationsEnabled: savedConfig.emailNotificationsEnabled
       }
     });
 

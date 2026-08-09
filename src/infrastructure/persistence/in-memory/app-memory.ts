@@ -199,6 +199,7 @@ class InMemoryDatabase {
         toneOfVoice: "дружелюбный, точный, спокойный",
         showPrivacyNotice: true,
         privacyNotice: "Отправляя сообщение, вы соглашаетесь на обработку данных для решения обращения.",
+        emailNotificationsEnabled: false,
         createdAt,
         updatedAt: createdAt
       }

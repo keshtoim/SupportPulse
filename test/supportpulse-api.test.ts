@@ -12,7 +12,8 @@ const testEnv: AppEnv = {
   jwtRefreshSecret: "test-refresh-secret",
   accessTokenTtl: "15m",
   refreshTokenTtl: "7d",
-  openAiModel: "gpt-4o-mini"
+  openAiModel: "gpt-4o-mini",
+  smtpPort: 587
 };
 
 const buildTestApp = () => createApp(createApplicationContext(testEnv));

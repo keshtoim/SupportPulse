@@ -39,7 +39,7 @@ type TenantRow = { tenant_id: string; name: string; is_blocked: boolean; created
 type UserRow = { user_id: string; tenant_id: string | null; name: string; email: string; role: string; password_hash: string; is_blocked: boolean; created_at: string };
 type TopicRow = { topic_id: string; tenant_id: string; title: string; created_at: string };
 type FaqRow = { faq_id: string; topic_id: string; tenant_id: string; question: string; answer: string; created_at: string; updated_at: string };
-type WidgetConfigRow = { config_id: string; tenant_id: string; brand_color: string; welcome_message: string; tone_of_voice: string; show_privacy_notice: boolean; privacy_notice: string | null; created_at: string; updated_at: string };
+type WidgetConfigRow = { config_id: string; tenant_id: string; brand_color: string; welcome_message: string; tone_of_voice: string; show_privacy_notice: boolean; privacy_notice: string | null; email_notifications_enabled: boolean; created_at: string; updated_at: string };
 type SessionRow = { session_id: string; tenant_id: string; state: string; customer_name: string | null; customer_email: string | null; last_knowledge_article_ids: string[]; created_at: string; updated_at: string };
 type MessageRow = { message_id: string; session_id: string; ticket_id: string | null; sender_type: string; content: string; metadata: Record<string, unknown>; created_at: string };
 type TicketRow = { ticket_id: string; tenant_id: string; session_id: string; status: string; assigned_user_id: string | null; reason: string; requested_by: string; closed_category: string | null; closed_reason: string | null; created_at: string; updated_at: string };
@@ -74,7 +74,7 @@ const toTenant = (r: TenantRow): Tenant => ({ id: r.tenant_id, name: r.name, isB
 const toUser = (r: UserRow): User => ({ id: r.user_id, tenantId: r.tenant_id, name: r.name, email: r.email, role: r.role as User["role"], passwordHash: r.password_hash, isBlocked: r.is_blocked, createdAt: r.created_at });
 const toTopic = (r: TopicRow): Topic => ({ id: r.topic_id, tenantId: r.tenant_id, title: r.title, createdAt: r.created_at });
 const toFaq = (r: FaqRow): FaqArticle => ({ id: r.faq_id, topicId: r.topic_id, tenantId: r.tenant_id, question: r.question, answer: r.answer, createdAt: r.created_at, updatedAt: r.updated_at });
-const toWidgetConfig = (r: WidgetConfigRow): WidgetConfig => ({ id: r.config_id, tenantId: r.tenant_id, brandColor: r.brand_color, welcomeMessage: r.welcome_message, toneOfVoice: r.tone_of_voice, showPrivacyNotice: r.show_privacy_notice, privacyNotice: r.privacy_notice, createdAt: r.created_at, updatedAt: r.updated_at });
+const toWidgetConfig = (r: WidgetConfigRow): WidgetConfig => ({ id: r.config_id, tenantId: r.tenant_id, brandColor: r.brand_color, welcomeMessage: r.welcome_message, toneOfVoice: r.tone_of_voice, showPrivacyNotice: r.show_privacy_notice, privacyNotice: r.privacy_notice, emailNotificationsEnabled: r.email_notifications_enabled, createdAt: r.created_at, updatedAt: r.updated_at });
 const toSession = (r: SessionRow): DialogueSession => ({ id: r.session_id, tenantId: r.tenant_id, state: r.state as DialogueSession["state"], customerName: r.customer_name, customerEmail: r.customer_email, lastKnowledgeArticleIds: r.last_knowledge_article_ids ?? [], createdAt: r.created_at, updatedAt: r.updated_at });
 const toMessage = (r: MessageRow): Message => ({ id: r.message_id, sessionId: r.session_id, ticketId: r.ticket_id, senderType: r.sender_type as Message["senderType"], content: r.content, metadata: r.metadata ?? {}, createdAt: r.created_at });
 const toTicket = (r: TicketRow): Ticket => ({ id: r.ticket_id, tenantId: r.tenant_id, sessionId: r.session_id, status: r.status as Ticket["status"], assignedUserId: r.assigned_user_id, reason: r.reason, requestedBy: r.requested_by, closedCategory: r.closed_category as Ticket["closedCategory"], closedReason: r.closed_reason, createdAt: r.created_at, updatedAt: r.updated_at });
@@ -234,7 +234,7 @@ export class SupabaseWidgetConfigRepository implements WidgetConfigRepository {
   }
 
   async upsert(config: WidgetConfig): Promise<WidgetConfig> {
-    const { data, error } = await this.db.from("widget_configs").upsert({ config_id: config.id, tenant_id: config.tenantId, brand_color: config.brandColor, welcome_message: config.welcomeMessage, tone_of_voice: config.toneOfVoice, show_privacy_notice: config.showPrivacyNotice, privacy_notice: config.privacyNotice, updated_at: config.updatedAt }, { onConflict: "tenant_id" }).select().single();
+    const { data, error } = await this.db.from("widget_configs").upsert({ config_id: config.id, tenant_id: config.tenantId, brand_color: config.brandColor, welcome_message: config.welcomeMessage, tone_of_voice: config.toneOfVoice, show_privacy_notice: config.showPrivacyNotice, privacy_notice: config.privacyNotice, email_notifications_enabled: config.emailNotificationsEnabled, updated_at: config.updatedAt }, { onConflict: "tenant_id" }).select().single();
     if (error) throw new Error(error.message);
     return toWidgetConfig(data as WidgetConfigRow);
   }

@@ -14,6 +14,7 @@ export type WidgetConfig = {
   toneOfVoice: string
   showPrivacyNotice: boolean
   privacyNotice: string | null
+  emailNotificationsEnabled: boolean
 }
 
 export type FaqArticle = {

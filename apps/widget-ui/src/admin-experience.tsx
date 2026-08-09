@@ -61,6 +61,7 @@ export function AdminExperience({
     toneOfVoice: '',
     showPrivacyNotice: true,
     privacyNotice: '',
+    emailNotificationsEnabled: false,
   })
   const [settingsNotice, setSettingsNotice] = useState<string | null>(null)
   const [knowledgeNotice, setKnowledgeNotice] = useState<string | null>(null)
@@ -233,6 +234,7 @@ export function AdminExperience({
         toneOfVoice: config.toneOfVoice,
         showPrivacyNotice: config.showPrivacyNotice,
         privacyNotice: config.privacyNotice ?? '',
+        emailNotificationsEnabled: config.emailNotificationsEnabled,
       })
     } catch (error) {
       setSettingsNotice((error as Error).message)
@@ -534,6 +536,7 @@ export function AdminExperience({
           toneOfVoice: settingsState.toneOfVoice,
           showPrivacyNotice: settingsState.showPrivacyNotice,
           privacyNotice: settingsState.privacyNotice || null,
+          emailNotificationsEnabled: settingsState.emailNotificationsEnabled,
         }),
       })
 
@@ -1636,6 +1639,39 @@ export function AdminExperience({
                       }
                     >
                       Согласие выключено
+                    </button>
+                  </div>
+                  <label class="form-label" for="email-notifications">
+                    Email-уведомления о новых тикетах
+                  </label>
+                  <p class="form-hint">Получают операторы, супервизоры и админ компании на этот тенант.</p>
+                  <div class="toggle-row">
+                    <button
+                      id="email-notifications"
+                      class={`toggle-pill ${settingsState.emailNotificationsEnabled ? 'active' : ''}`}
+                      type="button"
+                      disabled={!canManageCompany}
+                      onClick={() =>
+                        setSettingsState((current) => ({
+                          ...current,
+                          emailNotificationsEnabled: true,
+                        }))
+                      }
+                    >
+                      Включены
+                    </button>
+                    <button
+                      class={`toggle-pill ${!settingsState.emailNotificationsEnabled ? 'active' : ''}`}
+                      type="button"
+                      disabled={!canManageCompany}
+                      onClick={() =>
+                        setSettingsState((current) => ({
+                          ...current,
+                          emailNotificationsEnabled: false,
+                        }))
+                      }
+                    >
+                      Выключены
                     </button>
                   </div>
                   <button class="primary-button compact" type="submit" disabled={!canManageCompany}>

@@ -70,7 +70,8 @@ const updateWidgetConfigSchema = z.object({
   welcomeMessage: z.string().min(5),
   toneOfVoice: z.string().min(3),
   showPrivacyNotice: z.boolean(),
-  privacyNotice: z.string().nullable()
+  privacyNotice: z.string().nullable(),
+  emailNotificationsEnabled: z.boolean()
 });
 
 const createTenantSchema = z.object({

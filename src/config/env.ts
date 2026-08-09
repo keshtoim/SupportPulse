@@ -20,7 +20,12 @@ const envSchema = z
     OPENAI_API_KEY: z.string().optional().transform((value) => value?.trim() || undefined),
     OPENAI_MODEL: z.string().default("gpt-4o-mini"),
     SUPABASE_URL: z.url().optional(),
-    SUPABASE_SERVICE_ROLE_KEY: z.string().optional()
+    SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
+    SMTP_HOST: z.string().optional(),
+    SMTP_PORT: z.coerce.number().int().positive().default(587),
+    SMTP_USER: z.string().optional(),
+    SMTP_PASS: z.string().optional(),
+    SMTP_FROM: z.string().optional()
   })
   .superRefine((data, ctx) => {
     // Дополнительные проверки безопасности только для production
@@ -48,6 +53,11 @@ export type AppEnv = {
   openAiModel: string;
   supabaseUrl?: string;
   supabaseServiceRoleKey?: string;
+  smtpHost?: string;
+  smtpPort: number;
+  smtpUser?: string;
+  smtpPass?: string;
+  smtpFrom?: string;
 };
 
 /** Парсит и валидирует переменные окружения, выбрасывает при ошибке */
@@ -65,6 +75,11 @@ export const loadEnv = (): AppEnv => {
     openAiApiKey: parsed.OPENAI_API_KEY,
     openAiModel: parsed.OPENAI_MODEL,
     supabaseUrl: parsed.SUPABASE_URL,
-    supabaseServiceRoleKey: parsed.SUPABASE_SERVICE_ROLE_KEY
+    supabaseServiceRoleKey: parsed.SUPABASE_SERVICE_ROLE_KEY,
+    smtpHost: parsed.SMTP_HOST,
+    smtpPort: parsed.SMTP_PORT,
+    smtpUser: parsed.SMTP_USER,
+    smtpPass: parsed.SMTP_PASS,
+    smtpFrom: parsed.SMTP_FROM
   };
 };

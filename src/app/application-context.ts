@@ -9,6 +9,7 @@ import { FaqRagAnswerService } from "../infrastructure/ai/assistant-services";
 import { OpenAiEmbeddingService } from "../infrastructure/ai/embedding-service";
 import { BcryptPasswordService, JwtTokenService } from "../infrastructure/auth/security";
 import { FileDocumentTextExtractor } from "../infrastructure/documents/text-extractor";
+import { SmtpEmailService } from "../infrastructure/email/email-service";
 import { SystemClock, UuidIdGenerator, createInMemoryRepositories } from "../infrastructure/persistence/in-memory/app-memory";
 import { createSupabaseClient, SupabaseIdGenerator } from "../infrastructure/persistence/supabase/client";
 import { createSupabaseRepositories, SupabaseAuditLogRepository } from "../infrastructure/persistence/supabase/repositories";
@@ -53,6 +54,15 @@ export const createApplicationContext = (env: AppEnv) => {
   });
   const documentTextExtractor = new FileDocumentTextExtractor();
 
+  // Без полного набора SMTP_* переменных — выключен, уведомления просто не отправляются
+  const emailService = new SmtpEmailService({
+    host: env.smtpHost,
+    port: env.smtpPort,
+    user: env.smtpUser,
+    pass: env.smtpPass,
+    from: env.smtpFrom
+  });
+
   // Тот же ключ, что и для LLM: без него эмбеддинги выключены, RAG деградирует до keyword-поиска по FAQ
   const embeddingService = new OpenAiEmbeddingService({ apiKey: env.openAiApiKey });
   const knowledgeIndexingService = new KnowledgeIndexingService({
@@ -85,9 +95,11 @@ export const createApplicationContext = (env: AppEnv) => {
       sessionRepository: repositories.sessionRepository,
       messageRepository: repositories.messageRepository,
       ticketRepository: repositories.ticketRepository,
+      userRepository: repositories.userRepository,
       auditLogRepository: repositories.auditLogRepository,
       answerService,
       knowledgeRetrievalService,
+      emailService,
       idGenerator,
       clock
     }),

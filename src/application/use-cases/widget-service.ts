@@ -2,6 +2,7 @@ import type {
   AuditLogRepository,
   Clock,
   DialogueSessionRepository,
+  EmailService,
   FaqRepository,
   IdGenerator,
   MessageRepository,
@@ -9,10 +10,11 @@ import type {
   TenantRepository,
   TicketRepository,
   TopicRepository,
+  UserRepository,
   WidgetConfigRepository
 } from "../ports";
 import { AppError, type DialogueSession, type Message, type Ticket } from "../../domain/model";
-import { addAuditEntry, ensureTenantActive } from "./support";
+import { addAuditEntry, ensureTenantActive, operatorRoles } from "./support";
 import type { KnowledgeRetrievalService } from "./knowledge-retrieval-service";
 
 type WidgetServiceDependencies = {
@@ -23,9 +25,11 @@ type WidgetServiceDependencies = {
   sessionRepository: DialogueSessionRepository;
   messageRepository: MessageRepository;
   ticketRepository: TicketRepository;
+  userRepository: UserRepository;
   auditLogRepository: AuditLogRepository;
   answerService: SupportAnswerService;
   knowledgeRetrievalService: KnowledgeRetrievalService;
+  emailService: EmailService;
   idGenerator: IdGenerator;
   clock: Clock;
 };
@@ -366,6 +370,9 @@ export class WidgetSupportApplicationService {
       }
     }).catch(() => {});
 
+    // Fire-and-forget: недоступность почты не должна задерживать ответ клиенту
+    this.notifyByEmail(savedTicket).catch(() => {});
+
     return {
       decision: "escalate",
       session: updatedSession,
@@ -373,5 +380,57 @@ export class WidgetSupportApplicationService {
       reply: replyMessage,
       clientMessage: escalation.clientMessage
     };
+  }
+
+  /** Email-уведомление operator/supervisor/company_admin тенанта о новом тикете (FR-062) */
+  private async notifyByEmail(ticket: Ticket): Promise<void> {
+    if (!this.dependencies.emailService.isEnabled()) {
+      return;
+    }
+
+    const widgetConfig = await this.dependencies.widgetConfigRepository.getByTenantId(ticket.tenantId);
+
+    if (!widgetConfig?.emailNotificationsEnabled) {
+      return;
+    }
+
+    const [tenant, tenantUsers] = await Promise.all([
+      this.dependencies.tenantRepository.getById(ticket.tenantId),
+      this.dependencies.userRepository.listByTenant(ticket.tenantId)
+    ]);
+
+    const recipients = tenantUsers
+      .filter((user) => operatorRoles.includes(user.role) && !user.isBlocked)
+      .map((user) => user.email);
+
+    if (recipients.length === 0) {
+      return;
+    }
+
+    try {
+      await this.dependencies.emailService.send({
+        to: recipients,
+        subject: `Новый тикет — ${tenant?.name ?? "SupportPulse"}`,
+        text: `Причина обращения: ${ticket.reason}\nТикет: ${ticket.id}\nОткрыть в админке SupportPulse, раздел "Очередь".`
+      });
+
+      await addAuditEntry(this.dependencies.auditLogRepository, this.dependencies.idGenerator, this.dependencies.clock, {
+        tenantId: ticket.tenantId,
+        actorUserId: null,
+        action: "ticket_email_notification_sent",
+        entityType: "ticket",
+        entityId: ticket.id,
+        payload: { recipients: recipients.length }
+      });
+    } catch (error) {
+      await addAuditEntry(this.dependencies.auditLogRepository, this.dependencies.idGenerator, this.dependencies.clock, {
+        tenantId: ticket.tenantId,
+        actorUserId: null,
+        action: "ticket_email_notification_failed",
+        entityType: "ticket",
+        entityId: ticket.id,
+        payload: { message: error instanceof Error ? error.message : "unknown error" }
+      });
+    }
   }
 }

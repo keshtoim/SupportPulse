@@ -51,6 +51,7 @@ export class PlatformAdministrationApplicationService {
       toneOfVoice: "дружелюбный, точный, деловой",
       showPrivacyNotice: true,
       privacyNotice: "Продолжая диалог, вы соглашаетесь на обработку данных для решения обращения.",
+      emailNotificationsEnabled: false,
       createdAt: now,
       updatedAt: now
     });

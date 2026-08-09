@@ -92,6 +92,8 @@ export interface WidgetConfig {
   toneOfVoice: string;
   showPrivacyNotice: boolean;
   privacyNotice: string | null;
+  // Email-уведомления о новых тикетах для operator/supervisor/company_admin тенанта (FR-062)
+  emailNotificationsEnabled: boolean;
   createdAt: string;
   updatedAt: string;
 }
