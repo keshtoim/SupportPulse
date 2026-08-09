@@ -11,6 +11,8 @@ import {
   type FaqArticle,
   type KnowledgeDocument,
   type MessageRecord,
+  type PlatformMetrics,
+  type Tenant,
   type TicketRecord,
   type Topic,
   type WidgetConfig,
@@ -63,6 +65,11 @@ export function AdminExperience({
   const [knowledgeDocuments, setKnowledgeDocuments] = useState<KnowledgeDocument[]>([])
   const [selectedUploadFile, setSelectedUploadFile] = useState<File | null>(null)
   const [uploadingDocument, setUploadingDocument] = useState(false)
+  const [tenants, setTenants] = useState<Tenant[]>([])
+  const [platformMetrics, setPlatformMetrics] = useState<PlatformMetrics | null>(null)
+  const [newTenantName, setNewTenantName] = useState('')
+  const [tenantsNotice, setTenantsNotice] = useState<string | null>(null)
+  const [creatingTenant, setCreatingTenant] = useState(false)
 
   const adminTitle =
     screen === 'dashboard'
@@ -71,12 +78,15 @@ export function AdminExperience({
         ? 'Очередь'
         : screen === 'knowledge'
           ? 'База знаний'
-          : screen === 'settings'
-            ? 'Настройки'
-            : screen === 'news'
-              ? 'Новости'
-              : 'Профиль'
+          : screen === 'tenants'
+            ? 'Тенанты'
+            : screen === 'settings'
+              ? 'Настройки'
+              : screen === 'news'
+                ? 'Новости'
+                : 'Профиль'
   const canManageCompany = auth?.user.role === 'company_admin'
+  const isPlatformAdmin = auth?.user.role === 'platform_admin'
   const selectedTicket = tickets.find((ticket) => ticket.id === selectedTicketId) ?? null
 
   const authorizedRequest = async <ResponseType,>(path: string, init: RequestInit = {}) => {
@@ -182,6 +192,26 @@ export function AdminExperience({
     }
   }
 
+  const loadPlatformData = async () => {
+    if (!isPlatformAdmin) {
+      setTenants([])
+      setPlatformMetrics(null)
+      return
+    }
+
+    try {
+      const [tenantList, metrics] = await Promise.all([
+        authorizedRequest<Tenant[]>('/platform/tenants'),
+        authorizedRequest<PlatformMetrics>('/platform/metrics'),
+      ])
+
+      setTenants(tenantList)
+      setPlatformMetrics(metrics)
+    } catch (error) {
+      setTenantsNotice((error as Error).message)
+    }
+  }
+
   useEffect(() => {
     if (!auth) {
       return
@@ -189,6 +219,7 @@ export function AdminExperience({
 
     void loadTickets()
     void loadCompanyData()
+    void loadPlatformData()
   }, [auth])
 
   useEffect(() => {
@@ -458,6 +489,48 @@ export function AdminExperience({
 
   const knowledgeArticlesCount = companyKnowledge.reduce((total, topic) => total + topic.articles.length, 0)
 
+  const handleCreateTenant = async (event: Event) => {
+    event.preventDefault()
+
+    if (!isPlatformAdmin || !newTenantName.trim()) {
+      return
+    }
+
+    try {
+      setCreatingTenant(true)
+      setTenantsNotice(null)
+      await authorizedRequest<Tenant>('/platform/tenants', {
+        method: 'POST',
+        body: JSON.stringify({ name: newTenantName.trim() }),
+      })
+      setNewTenantName('')
+      await loadPlatformData()
+      setTenantsNotice('Тенант создан.')
+    } catch (error) {
+      setTenantsNotice((error as Error).message)
+    } finally {
+      setCreatingTenant(false)
+    }
+  }
+
+  const handleToggleTenantBlocked = async (tenant: Tenant) => {
+    if (!isPlatformAdmin) {
+      return
+    }
+
+    try {
+      setTenantsNotice(null)
+      await authorizedRequest<Tenant>(`/platform/tenants/${tenant.id}/block`, {
+        method: 'POST',
+        body: JSON.stringify({ isBlocked: !tenant.isBlocked }),
+      })
+      await loadPlatformData()
+      setTenantsNotice(tenant.isBlocked ? 'Тенант разблокирован.' : 'Тенант заблокирован.')
+    } catch (error) {
+      setTenantsNotice((error as Error).message)
+    }
+  }
+
   return (
     <section class={`admin-shell ${!active ? 'is-hidden' : ''}`}>
       {newTicketToast && <div class="ticket-toast">{newTicketToast}</div>}
@@ -508,6 +581,18 @@ export function AdminExperience({
                   </svg>
                 ),
                 screen: 'knowledge' as const,
+              },
+              {
+                title: 'Тенанты',
+                icon: (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M6 22V4a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v18Z" />
+                    <path d="M6 12H4a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h2" />
+                    <path d="M18 9h2a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-2" />
+                    <path d="M10 6h4" /><path d="M10 10h4" /><path d="M10 14h4" /><path d="M10 18h4" />
+                  </svg>
+                ),
+                screen: 'tenants' as const,
               },
               {
                 title: 'Настройки',
@@ -983,6 +1068,79 @@ export function AdminExperience({
               </div>
             )}
 
+            {screen === 'tenants' && (
+              <div class="admin-page">
+                <h2>Тенанты платформы</h2>
+                {!isPlatformAdmin && (
+                  <div class="alert-banner">
+                    Для управления тенантами нужен вход под администратором платформы.
+                  </div>
+                )}
+                {tenantsNotice && (
+                  <div class={`alert-banner ${tenantsNotice.includes('создан') || tenantsNotice.includes('заблокирован') || tenantsNotice.includes('разблокирован') ? 'success' : 'error'}`}>
+                    {tenantsNotice}
+                  </div>
+                )}
+
+                {platformMetrics && (
+                  <section class="stats-grid">
+                    <article class="card stat-card">
+                      <strong>Тенантов</strong>
+                      <span>{platformMetrics.tenantsTotal}</span>
+                    </article>
+                    <article class="card stat-card">
+                      <strong>Заблокировано</strong>
+                      <span>{platformMetrics.tenantsBlocked}</span>
+                    </article>
+                    <article class="card stat-card">
+                      <strong>Пользователей</strong>
+                      <span>{platformMetrics.usersTotal}</span>
+                    </article>
+                    <article class="card stat-card">
+                      <strong>Тикетов всего</strong>
+                      <span>{platformMetrics.tickets.total}</span>
+                    </article>
+                  </section>
+                )}
+
+                <form class="inline-form" onSubmit={handleCreateTenant}>
+                  <input
+                    class="text-input"
+                    type="text"
+                    placeholder="Название новой компании-клиента"
+                    value={newTenantName}
+                    disabled={!isPlatformAdmin || creatingTenant}
+                    onInput={(event) => setNewTenantName((event.currentTarget as HTMLInputElement).value)}
+                  />
+                  <button class="primary-button compact" type="submit" disabled={!isPlatformAdmin || !newTenantName.trim() || creatingTenant}>
+                    {creatingTenant ? 'Создаю...' : 'Создать тенанта'}
+                  </button>
+                </form>
+
+                <div class="compact-list">
+                  {tenants.map((tenant) => (
+                    <article class="card compact-card" key={tenant.id}>
+                      <div class="topic-header">
+                        <div>
+                          <strong>{tenant.name}</strong>
+                          <p>Создан {formatDateTime(tenant.createdAt)} · ID {tenant.id.slice(0, 8)}</p>
+                        </div>
+                        <span class={`status-pill ${tenant.isBlocked ? 'ai-fallback' : 'ai'}`}>
+                          {tenant.isBlocked ? 'Заблокирован' : 'Активен'}
+                        </span>
+                      </div>
+                      {isPlatformAdmin && (
+                        <button class="secondary-link" type="button" onClick={() => void handleToggleTenantBlocked(tenant)}>
+                          {tenant.isBlocked ? 'Разблокировать' : 'Заблокировать'}
+                        </button>
+                      )}
+                    </article>
+                  ))}
+                  {tenants.length === 0 && <div class="empty-state">Тенантов пока нет — создайте первого выше.</div>}
+                </div>
+              </div>
+            )}
+
             {screen === 'settings' && (
               <div class="admin-page">
                 <h2>Настройки виджета</h2>
@@ -1159,6 +1317,10 @@ export function AdminExperience({
                       setSeenTicketIds(null)
                       setNewTicketToast(null)
                       setUnseenTicketCount(0)
+                      setTenants([])
+                      setPlatformMetrics(null)
+                      setTenantsNotice(null)
+                      setNewTenantName('')
                     }}
                   >
                     Выйти

@@ -1,5 +1,5 @@
 export type WidgetScreen = 'home' | 'chat'
-export type AdminScreen = 'dashboard' | 'chats' | 'knowledge' | 'settings' | 'profile' | 'news'
+export type AdminScreen = 'dashboard' | 'chats' | 'knowledge' | 'tenants' | 'settings' | 'profile' | 'news'
 export type AppMode = 'widget' | 'admin'
 export type SenderType = 'client' | 'ai' | 'operator' | 'system'
 export type UserRole = 'operator' | 'supervisor' | 'company_admin' | 'platform_admin'
@@ -28,6 +28,27 @@ export type Topic = {
   tenantId: string
   title: string
   articles: FaqArticle[]
+}
+
+export type Tenant = {
+  id: string
+  name: string
+  isBlocked: boolean
+  createdAt: string
+}
+
+export type PlatformMetrics = {
+  tenantsTotal: number
+  tenantsBlocked: number
+  usersTotal: number
+  sessionsTotal: number
+  tickets: {
+    total: number
+    new: number
+    inProgress: number
+    waitingClient: number
+    closed: number
+  }
 }
 
 export type KnowledgeDocumentStatus = 'processed' | 'failed'
