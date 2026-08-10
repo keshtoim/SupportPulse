@@ -296,7 +296,7 @@ export const createApiRouter = (context: ApplicationContext) => {
     "/templates",
     asyncHandler(async (request, response) => {
       const actor = getRequiredAuthUser(request);
-      const result = await context.operatorService.listTemplates(actor);
+      const result = await context.templateService.listTemplates(actor);
       response.json(result);
     })
   );
@@ -305,7 +305,7 @@ export const createApiRouter = (context: ApplicationContext) => {
     asyncHandler(async (request, response) => {
       const actor = getRequiredAuthUser(request);
       const payload = createTemplateSchema.parse(request.body);
-      const result = await context.operatorService.createTemplate(actor, payload);
+      const result = await context.templateService.createTemplate(actor, payload);
       response.status(201).json(result);
     })
   );
@@ -314,7 +314,7 @@ export const createApiRouter = (context: ApplicationContext) => {
     asyncHandler(async (request, response) => {
       const actor = getRequiredAuthUser(request);
       const payload = updateTemplateSchema.parse(request.body);
-      const result = await context.operatorService.updateTemplate(actor, getSingleValue(request.params.templateId, "templateId"), payload);
+      const result = await context.templateService.updateTemplate(actor, getSingleValue(request.params.templateId, "templateId"), payload);
       response.json(result);
     })
   );
@@ -322,7 +322,7 @@ export const createApiRouter = (context: ApplicationContext) => {
     "/templates/:templateId",
     asyncHandler(async (request, response) => {
       const actor = getRequiredAuthUser(request);
-      await context.operatorService.deleteTemplate(actor, getSingleValue(request.params.templateId, "templateId"));
+      await context.templateService.deleteTemplate(actor, getSingleValue(request.params.templateId, "templateId"));
       response.status(204).send();
     })
   );

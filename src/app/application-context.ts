@@ -3,6 +3,8 @@ import { AuthenticationApplicationService } from "../application/use-cases/authe
 import { CompanyAdministrationApplicationService } from "../application/use-cases/company-service";
 import { OperatorWorkbenchApplicationService } from "../application/use-cases/operator-service";
 import { PlatformAdministrationApplicationService } from "../application/use-cases/platform-service";
+import { ResponseTemplateApplicationService } from "../application/use-cases/response-template-service";
+import { TicketNotificationApplicationService } from "../application/use-cases/ticket-notification-service";
 import { WidgetSupportApplicationService } from "../application/use-cases/widget-service";
 import type { AppEnv } from "../config/env";
 import { FaqRagAnswerService } from "../infrastructure/ai/assistant-services";
@@ -81,6 +83,16 @@ export const createApplicationContext = (env: AppEnv) => {
     knowledgeChunkRepository: repositories.knowledgeChunkRepository
   });
 
+  const ticketNotificationService = new TicketNotificationApplicationService({
+    tenantRepository: repositories.tenantRepository,
+    userRepository: repositories.userRepository,
+    widgetConfigRepository: repositories.widgetConfigRepository,
+    emailService,
+    auditLogRepository: repositories.auditLogRepository,
+    idGenerator,
+    clock
+  });
+
   return {
     env,
     logger,
@@ -100,11 +112,10 @@ export const createApplicationContext = (env: AppEnv) => {
       sessionRepository: repositories.sessionRepository,
       messageRepository: repositories.messageRepository,
       ticketRepository: repositories.ticketRepository,
-      userRepository: repositories.userRepository,
       auditLogRepository: repositories.auditLogRepository,
       answerService,
       knowledgeRetrievalService,
-      emailService,
+      ticketNotificationService,
       idGenerator,
       clock
     }),
@@ -113,6 +124,11 @@ export const createApplicationContext = (env: AppEnv) => {
       sessionRepository: repositories.sessionRepository,
       messageRepository: repositories.messageRepository,
       ticketNoteRepository: repositories.ticketNoteRepository,
+      auditLogRepository: repositories.auditLogRepository,
+      idGenerator,
+      clock
+    }),
+    templateService: new ResponseTemplateApplicationService({
       responseTemplateRepository: repositories.responseTemplateRepository,
       auditLogRepository: repositories.auditLogRepository,
       idGenerator,
