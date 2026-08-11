@@ -12,7 +12,9 @@ create table if not exists knowledge_chunks (
 
 create index if not exists idx_knowledge_chunks_tenant_id on knowledge_chunks (tenant_id);
 create index if not exists idx_knowledge_chunks_document_id on knowledge_chunks (document_id);
-create index if not exists idx_knowledge_chunks_embedding on knowledge_chunks using ivfflat (embedding vector_cosine_ops) with (lists = 100);
+-- HNSW вместо IVFFlat: IVFFlat строит кластеры по данным на момент создания индекса и деградирует
+-- на пустой/малой таблице (а она пустая при первом накате миграции); HNSW не требует прогрева данными.
+create index if not exists idx_knowledge_chunks_embedding on knowledge_chunks using hnsw (embedding vector_cosine_ops);
 
 -- Поиск ближайших фрагментов по косинусному сходству в рамках тенанта.
 -- Вычисления на клиенте (supabase-js) невозможны — используем RPC с оператором pgvector <=>.
