@@ -291,12 +291,6 @@ export class SupabaseMessageRepository implements MessageRepository {
     return (data ?? []).map(toMessage);
   }
 
-  async listByTicket(ticketId: string): Promise<Message[]> {
-    const { data, error } = await this.db.from("messages").select("*").eq("ticket_id", ticketId).order("created_at");
-    if (error) throw new Error(error.message);
-    return (data ?? []).map((r) => toMessage(r as MessageRow));
-  }
-
   async create(message: Message): Promise<Message> {
     for (let attempt = 0; attempt <= 2; attempt++) {
       const { data, error } = await this.db

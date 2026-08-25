@@ -127,7 +127,6 @@ export interface DialogueSessionRepository {
 
 export interface MessageRepository {
   listBySession(sessionId: string): Promise<Message[]>;
-  listByTicket(ticketId: string): Promise<Message[]>;
   create(message: Message): Promise<Message>;
 }
 

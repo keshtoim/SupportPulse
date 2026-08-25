@@ -380,13 +380,6 @@ export class InMemoryMessageRepository implements MessageRepository {
       .map((value) => clone(value));
   }
 
-  async listByTicket(ticketId: string): Promise<Message[]> {
-    return [...this.database.messages.values()]
-      .filter((message) => message.ticketId === ticketId)
-      .sort((left, right) => left.createdAt.localeCompare(right.createdAt))
-      .map((value) => clone(value));
-  }
-
   async create(message: Message): Promise<Message> {
     this.database.messages.set(message.id, clone(message));
     return clone(message);

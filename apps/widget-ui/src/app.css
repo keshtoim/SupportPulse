@@ -830,11 +830,6 @@ html.embed-mode .widget-shell {
   cursor: pointer;
 }
 
-.chip.circle {
-  min-width: 50px;
-  border-radius: 50%;
-}
-
 .chat-canvas {
   padding-top: 18px;
   display: grid;
@@ -1335,6 +1330,22 @@ html.embed-mode .widget-shell {
   font-size: 16px;
   font-weight: 700;
   cursor: pointer;
+}
+
+/* Акцент для действий, переводящих тикет в закрытое состояние — тот же зелёный,
+   что и статус "Закрыт" в списке слева, чтобы визуально читалось как одно и то же */
+.secondary-button.tint-green {
+  background: #e3f6ec;
+  color: #14663f;
+}
+
+.secondary-button.tint-green:hover:not(:disabled) {
+  background: #cdeee0;
+}
+
+.secondary-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .secondary-link {

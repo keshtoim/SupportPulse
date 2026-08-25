@@ -31,7 +31,10 @@ export class OperatorWorkbenchApplicationService {
   async getTicketMessages(actor: AuthenticatedUser, ticketId: string) {
     ensureRole(actor, operatorRoles);
     const ticket = await this.requireTicket(actor, ticketId);
-    return this.dependencies.messageRepository.listByTicket(ticket.id);
+    // По sessionId, не по ticketId: сообщения до эскалации (вопрос клиента, попытки AI) создаются
+    // раньше, чем появляется сам тикет, и ticketId у них не проставлен — listByTicket их бы потерял,
+    // и оператор не увидел бы, с чего начался разговор.
+    return this.dependencies.messageRepository.listBySession(ticket.sessionId);
   }
 
   /** Берёт тикет в работу: назначает оператора, переводит в in_progress и синхронизирует состояние сессии */

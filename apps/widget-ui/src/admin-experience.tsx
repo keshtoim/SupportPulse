@@ -971,18 +971,6 @@ export function AdminExperience({
                   <button class="chip" type="button" onClick={() => void loadTickets()}>
                     {ticketsLoading ? 'Обновляю...' : 'Обновить'}
                   </button>
-                  <button class="chip" type="button" onClick={() => handleChangeTicketStatus('waiting_client')}>
-                    Ждёт клиента
-                  </button>
-                  <button
-                    class="chip circle"
-                    type="button"
-                    aria-label="Закрыть"
-                    disabled={!selectedTicket}
-                    onClick={() => setClosingTicket((current) => !current)}
-                  >
-                    ✓
-                  </button>
                   {canManageTemplates && (
                     <button class="chip" type="button" onClick={() => setShowTemplateManager((current) => !current)}>
                       {showTemplateManager ? 'Скрыть шаблоны' : 'Управление шаблонами'}
@@ -1107,15 +1095,44 @@ export function AdminExperience({
                             </p>
                           </div>
                           <div class="thread-actions">
-                            <button class="secondary-button compact-button" type="button" onClick={handleClaimTicket}>
+                            <button
+                              class="secondary-button compact-button"
+                              type="button"
+                              disabled={selectedTicket.status === 'closed' || selectedTicket.assignedUserId === auth.user.id}
+                              onClick={handleClaimTicket}
+                            >
                               Взять в работу
                             </button>
                             <button
                               class="secondary-button compact-button"
                               type="button"
+                              disabled={selectedTicket.status === 'closed' || selectedTicket.status === 'in_progress'}
                               onClick={() => handleChangeTicketStatus('in_progress')}
                             >
                               В работе
+                            </button>
+                            <button
+                              class="secondary-button compact-button"
+                              type="button"
+                              disabled={selectedTicket.status === 'closed' || selectedTicket.status === 'waiting_client'}
+                              onClick={() => handleChangeTicketStatus('waiting_client')}
+                            >
+                              Ждёт клиента
+                            </button>
+                            <button
+                              class="secondary-button compact-button tint-green"
+                              type="button"
+                              disabled={selectedTicket.status === 'closed'}
+                              onClick={() => {
+                                if (closingTicket) {
+                                  setCloseCategory('')
+                                  setCloseReasonText('')
+                                  setCloseError(null)
+                                }
+                                setClosingTicket((current) => !current)
+                              }}
+                            >
+                              {closingTicket ? 'Отменить закрытие' : 'Закрыть тикет'}
                             </button>
                           </div>
                         </div>
