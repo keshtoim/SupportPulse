@@ -127,9 +127,13 @@ html.embed-mode .widget-shell {
 
 /* Сама иконка (app-icon.png) уже несёт скругление и тень — оборачивать в свои не нужно,
    иначе тень дублируется. Скругление в % держит пропорцию одинаковой на любом размере. */
+/* padding + border-box дают чуть воздуха вокруг иконки, не трогая сам файл —
+   размер рамки (xs/sm/md) остаётся прежним, картинка внутри чуть уменьшается */
 .app-icon {
   object-fit: cover;
   border-radius: 22%;
+  box-sizing: border-box;
+  padding: 2px;
 }
 
 .app-icon.xs {
@@ -229,16 +233,6 @@ html.embed-mode .widget-shell {
 
 .intro-avatar {
   flex-shrink: 0;
-  width: 56px;
-  height: 56px;
-  border-radius: 16px;
-  display: grid;
-  place-items: center;
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--brand-color, #6a8fff) 20%, white),
-    color-mix(in srgb, var(--brand-color, #6a8fff) 8%, white)
-  );
 }
 
 .intro-text {
