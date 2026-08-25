@@ -229,6 +229,16 @@ html.embed-mode .widget-shell {
 
 .intro-avatar {
   flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--brand-color, #6a8fff) 20%, white),
+    color-mix(in srgb, var(--brand-color, #6a8fff) 8%, white)
+  );
 }
 
 .intro-text {
@@ -726,16 +736,16 @@ html.embed-mode .widget-shell {
   overflow: auto;
 }
 
+/* Единый вертикальный ритм между секциями экрана — раньше заголовок/баннеры/форма/список
+   шли впритык друг к другу, полагаясь на случайные margin отдельных элементов */
 .admin-page {
-  max-width: 1200px;
-}
-
-.admin-page.chats-page {
-  max-width: none;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
 .admin-page h2 {
-  margin: 0 0 14px;
+  margin: 0;
   font-size: 28px;
 }
 
@@ -752,7 +762,6 @@ html.embed-mode .widget-shell {
   background: #c9e2ff;
   border: 2px solid #8fa6c2;
   padding: 8px 16px;
-  margin-bottom: 18px;
 }
 
 .knowledge-header h2 {
@@ -1451,7 +1460,6 @@ html.embed-mode .widget-shell {
 
 .stats-grid {
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  margin-bottom: 18px;
 }
 
 .stat-card strong {
