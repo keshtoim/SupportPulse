@@ -44,7 +44,7 @@ function NormalApp({ tenantId }: { tenantId: string }) {
   const [adminScreen, setAdminScreen] = useState<AdminScreen>('dashboard')
 
   return (
-    <main class="app-root">
+    <main class={`app-root ${mode}-mode`}>
       <section class="mode-switch">
         <button
           class={`mode-switch-button ${mode === 'widget' ? 'active' : ''}`}

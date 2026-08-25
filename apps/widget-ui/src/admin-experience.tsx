@@ -791,7 +791,12 @@ export function AdminExperience({
                 screen: 'profile' as const,
               },
             ].map((item) => (
-              <button class="dashboard-tile" type="button" key={item.title} onClick={() => onScreenChange(item.screen)}>
+              <button
+                class={`dashboard-tile ${screen === item.screen ? 'active' : ''}`}
+                type="button"
+                key={item.title}
+                onClick={() => onScreenChange(item.screen)}
+              >
                 {item.screen === 'chats' && unseenTicketCount > 0 && (
                   <span class="notification-badge">{unseenTicketCount > 9 ? '9+' : unseenTicketCount}</span>
                 )}
@@ -801,7 +806,7 @@ export function AdminExperience({
             ))}
           </div>
 
-          <button class="dashboard-wide-tile" type="button" onClick={() => onScreenChange('news')}>
+          <button class={`dashboard-wide-tile ${screen === 'news' ? 'active' : ''}`} type="button" onClick={() => onScreenChange('news')}>
             <div class="tile-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2" />
@@ -1074,6 +1079,7 @@ export function AdminExperience({
                         class={`ticket-list-item ${selectedTicketId === ticket.id ? 'active' : ''}`}
                         type="button"
                         key={ticket.id}
+                        data-status={ticket.status}
                         onClick={() => setSelectedTicketId(ticket.id)}
                       >
                         <strong>{statusLabel[ticket.status]}</strong>
@@ -1214,42 +1220,46 @@ export function AdminExperience({
                             Отправить ответ
                           </button>
                         </form>
-
-                        <section class="card compact-card">
-                          <strong>Внутренние заметки</strong>
-                          <p class="form-hint">Видны только команде поддержки, клиент их не видит.</p>
-                          {noteError && <div class="alert-banner error compact">{noteError}</div>}
-
-                          <div class="compact-list">
-                            {ticketNotes.map((note) => (
-                              <div class="card compact-card note-item" key={note.id}>
-                                <div class="message-caption">
-                                  <strong>{note.authorName}</strong>
-                                  <span>{formatDateTime(note.createdAt)}</span>
-                                </div>
-                                <p>{note.content}</p>
-                              </div>
-                            ))}
-                            {ticketNotes.length === 0 && <div class="empty-state">Заметок пока нет.</div>}
-                          </div>
-
-                          <form class="thread-composer" onSubmit={handleAddNote}>
-                            <textarea
-                              class="text-area"
-                              placeholder="Заметка для команды..."
-                              value={newNoteDraft}
-                              onInput={(event) => setNewNoteDraft((event.currentTarget as HTMLTextAreaElement).value)}
-                            />
-                            <button class="secondary-button compact-button" type="submit">
-                              Добавить заметку
-                            </button>
-                          </form>
-                        </section>
                       </>
                     ) : (
                       <div class="empty-state">Выберите тикет из списка слева.</div>
                     )}
                   </section>
+
+                  {selectedTicket && (
+                    <aside class="ticket-context">
+                      <section class="card compact-card">
+                        <strong>Внутренние заметки</strong>
+                        <p class="form-hint">Видны только команде поддержки, клиент их не видит.</p>
+                        {noteError && <div class="alert-banner error compact">{noteError}</div>}
+
+                        <div class="compact-list">
+                          {ticketNotes.map((note) => (
+                            <div class="card compact-card note-item" key={note.id}>
+                              <div class="message-caption">
+                                <strong>{note.authorName}</strong>
+                                <span>{formatDateTime(note.createdAt)}</span>
+                              </div>
+                              <p>{note.content}</p>
+                            </div>
+                          ))}
+                          {ticketNotes.length === 0 && <div class="empty-state">Заметок пока нет.</div>}
+                        </div>
+
+                        <form class="thread-composer" onSubmit={handleAddNote}>
+                          <textarea
+                            class="text-area"
+                            placeholder="Заметка для команды..."
+                            value={newNoteDraft}
+                            onInput={(event) => setNewNoteDraft((event.currentTarget as HTMLTextAreaElement).value)}
+                          />
+                          <button class="secondary-button compact-button" type="submit">
+                            Добавить заметку
+                          </button>
+                        </form>
+                      </section>
+                    </aside>
+                  )}
                 </div>
               </div>
             )}

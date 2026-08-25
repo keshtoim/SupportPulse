@@ -216,8 +216,13 @@ export function WidgetExperience({
     return []
   }, [messages, widgetData])
 
+  const brandColor = widgetData?.widgetConfig.brandColor
+
   return (
-    <section class={`widget-shell ${!active ? 'is-hidden' : ''}`}>
+    <section
+      class={`widget-shell ${!active ? 'is-hidden' : ''}`}
+      style={brandColor ? { '--brand-color': brandColor } as Record<string, string> : undefined}
+    >
 
       {/* Compact header — только на экране чата */}
       {screen === 'chat' && (
@@ -415,8 +420,8 @@ export function WidgetExperience({
                 />
                 <button class="composer-send" type="submit" aria-label="Отправить" disabled={sending}>
                   {sending ? (
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" width="16" height="16">
-                      <path d="M12 19V5M5 12l7-7 7 7" />
+                    <svg class="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" width="16" height="16">
+                      <path d="M21 12a9 9 0 1 1-9-9" />
                     </svg>
                   ) : (
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" width="16" height="16">
