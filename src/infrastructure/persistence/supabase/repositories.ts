@@ -164,6 +164,13 @@ export class SupabaseUserRepository implements UserRepository {
     if (error) throw new Error(error.message);
     return toUser(data as UserRow);
   }
+
+  async countAll(): Promise<number> {
+    // head: true — Postgres считает строки, но сами данные по сети не гоняются
+    const { count, error } = await this.db.from("users").select("*", { count: "exact", head: true });
+    if (error) throw new Error(error.message);
+    return count ?? 0;
+  }
 }
 
 export class SupabaseTopicRepository implements TopicRepository {
@@ -279,6 +286,12 @@ export class SupabaseDialogueSessionRepository implements DialogueSessionReposit
     ) as SessionRow;
     return toSession(data);
   }
+
+  async countAll(): Promise<number> {
+    const { count, error } = await this.db.from("dialogue_sessions").select("*", { count: "exact", head: true });
+    if (error) throw new Error(error.message);
+    return count ?? 0;
+  }
 }
 
 export class SupabaseMessageRepository implements MessageRepository {
@@ -291,6 +304,13 @@ export class SupabaseMessageRepository implements MessageRepository {
     return (data ?? []).map(toMessage);
   }
 
+  async listRecentBySession(sessionId: string, limit: number): Promise<Message[]> {
+    const data = await withRetry(async () =>
+      this.db.from("messages").select("*").eq("session_id", sessionId).order("created_at", { ascending: false }).limit(limit)
+    ) as MessageRow[] | null;
+    return (data ?? []).map(toMessage).reverse();
+  }
+
   async create(message: Message): Promise<Message> {
     for (let attempt = 0; attempt <= 2; attempt++) {
       const { data, error } = await this.db
@@ -300,7 +320,7 @@ export class SupabaseMessageRepository implements MessageRepository {
         .single();
       if (!error) return toMessage(data as MessageRow);
 
-      // A previous timed-out attempt actually committed — row already exists. Fetch it.
+      // Предыдущая попытка с таймаутом на самом деле применилась — строка уже есть, читаем её
       if (error.message.includes("duplicate key")) {
         const { data: existing, error: fetchError } = await this.db
           .from("messages").select().eq("message_id", message.id).single();

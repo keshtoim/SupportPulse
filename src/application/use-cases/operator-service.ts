@@ -1,5 +1,5 @@
 import type { AuditLogRepository, Clock, DialogueSessionRepository, IdGenerator, MessageRepository, TicketNoteRepository, TicketRepository } from "../ports";
-import { AppError, type AuthenticatedUser, type TicketCloseCategory, type TicketNote, type TicketStatus } from "../../domain/model";
+import { AppError, type AuthenticatedUser, type SessionState, type TicketCloseCategory, type TicketNote, type TicketStatus } from "../../domain/model";
 import { addAuditEntry, ensureRole, ensureTenantAccess, mapTicketPayload, operatorRoles } from "./support";
 
 type OperatorServiceDependencies = {
@@ -55,15 +55,7 @@ export class OperatorWorkbenchApplicationService {
       updatedAt: now
     });
 
-    const session = await this.dependencies.sessionRepository.getById(ticket.sessionId);
-
-    if (session) {
-      await this.dependencies.sessionRepository.update({
-        ...session,
-        state: "operator_connected",
-        updatedAt: now
-      });
-    }
+    await this.syncSessionState(ticket.sessionId, "operator_connected", now);
 
     await addAuditEntry(this.dependencies.auditLogRepository, this.dependencies.idGenerator, this.dependencies.clock, {
       tenantId: ticket.tenantId,
@@ -105,15 +97,7 @@ export class OperatorWorkbenchApplicationService {
       updatedAt: now
     });
 
-    const session = await this.dependencies.sessionRepository.getById(ticket.sessionId);
-
-    if (session) {
-      await this.dependencies.sessionRepository.update({
-        ...session,
-        state: payload.status === "closed" ? "closed" : "operator_connected",
-        updatedAt: now
-      });
-    }
+    await this.syncSessionState(ticket.sessionId, payload.status === "closed" ? "closed" : "operator_connected", now);
 
     await addAuditEntry(this.dependencies.auditLogRepository, this.dependencies.idGenerator, this.dependencies.clock, {
       tenantId: ticket.tenantId,
@@ -153,15 +137,7 @@ export class OperatorWorkbenchApplicationService {
             updatedAt: now
           });
 
-    const session = await this.dependencies.sessionRepository.getById(ticket.sessionId);
-
-    if (session) {
-      await this.dependencies.sessionRepository.update({
-        ...session,
-        state: "operator_connected",
-        updatedAt: now
-      });
-    }
+    await this.syncSessionState(ticket.sessionId, "operator_connected", now);
 
     const message = await this.dependencies.messageRepository.create({
       id: this.dependencies.idGenerator.next("msg"),
@@ -244,5 +220,18 @@ export class OperatorWorkbenchApplicationService {
 
     ensureTenantAccess(actor, ticket.tenantId);
     return ticket;
+  }
+
+  /** Переводит сессию диалога в новое состояние вслед за изменением тикета; молча пропускает, если сессия уже удалена */
+  private async syncSessionState(sessionId: string, state: SessionState, now: string): Promise<void> {
+    const session = await this.dependencies.sessionRepository.getById(sessionId);
+
+    if (session) {
+      await this.dependencies.sessionRepository.update({
+        ...session,
+        state,
+        updatedAt: now
+      });
+    }
   }
 }

@@ -269,6 +269,10 @@ export class InMemoryUserRepository implements UserRepository {
       .map((value) => clone(value));
   }
 
+  async countAll(): Promise<number> {
+    return this.database.users.size;
+  }
+
   async update(user: User): Promise<User> {
     this.database.users.set(user.id, clone(user));
     return clone(user);
@@ -359,6 +363,10 @@ export class InMemoryDialogueSessionRepository implements DialogueSessionReposit
     return session ? clone(session) : null;
   }
 
+  async countAll(): Promise<number> {
+    return this.database.sessions.size;
+  }
+
   async create(session: DialogueSession): Promise<DialogueSession> {
     this.database.sessions.set(session.id, clone(session));
     return clone(session);
@@ -377,6 +385,15 @@ export class InMemoryMessageRepository implements MessageRepository {
     return [...this.database.messages.values()]
       .filter((message) => message.sessionId === sessionId)
       .sort((left, right) => left.createdAt.localeCompare(right.createdAt))
+      .map((value) => clone(value));
+  }
+
+  async listRecentBySession(sessionId: string, limit: number): Promise<Message[]> {
+    return [...this.database.messages.values()]
+      .filter((message) => message.sessionId === sessionId)
+      .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
+      .slice(0, limit)
+      .reverse()
       .map((value) => clone(value));
   }
 

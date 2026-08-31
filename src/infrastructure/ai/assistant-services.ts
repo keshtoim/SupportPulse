@@ -162,22 +162,6 @@ export class FaqRagAnswerService implements SupportAnswerService {
       };
     }
 
-    const prompt = ChatPromptTemplate.fromTemplate(
-      [
-        "Ты AI-помощник платформы поддержки компании {tenantName}.",
-        "Стиль ответа: {toneOfVoice}.",
-        "Отвечай только на основе базы знаний ниже. Не придумывай новые факты.",
-        "Если данных недостаточно, честно скажи об этом и попроси уточнение.",
-        "Контекст последних сообщений:",
-        "{history}",
-        "",
-        "База знаний:",
-        "{knowledge}",
-        "",
-        "Вопрос клиента: {question}"
-      ].join("\n")
-    );
-
     const matchedChunkIds = strongChunks.map((chunk) => chunk.chunkId);
     const knowledgeSections = [
       topArticles.map((item, index) => `${index + 1}. Вопрос: ${item.article.question}\nОтвет: ${item.article.answer}`).join("\n\n")
@@ -186,34 +170,21 @@ export class FaqRagAnswerService implements SupportAnswerService {
       knowledgeSections.push(formatChunksForPrompt(strongChunks));
     }
 
-    try {
-      const response = await prompt.pipe(this.llm).invoke({
-        tenantName: context.tenant.name,
-        toneOfVoice: context.widgetConfig.toneOfVoice,
-        history: mapRecentMessages(context.history),
-        knowledge: knowledgeSections.join("\n\n"),
-        question: context.question
-      });
+    const { text, threw } = await this.invokeLlm({
+      promptIntro: "Отвечай только на основе базы знаний ниже. Не придумывай новые факты.",
+      context,
+      knowledge: knowledgeSections.join("\n\n"),
+      fallbackAnswer
+    });
 
-      const text = extractResponseText(response) || fallbackAnswer;
-
-      return {
-        kind: "answer" as const,
-        message: text,
-        matchedArticleIds,
-        matchedChunkIds,
-        confidence: Math.min(0.98, 0.45 + topArticles[0].score / 4)
-      };
-    } catch {
-      // При ошибке LLM — деградируем к fallback-ответу
-      return {
-        kind: "answer" as const,
-        message: fallbackAnswer,
-        matchedArticleIds,
-        matchedChunkIds,
-        confidence: Math.min(0.9, 0.4 + topArticles[0].score / 4)
-      };
-    }
+    return {
+      kind: "answer" as const,
+      message: text,
+      matchedArticleIds,
+      matchedChunkIds,
+      // При ошибке LLM (threw) уверенность ниже — деградировали к fallback-ответу
+      confidence: threw ? Math.min(0.9, 0.4 + topArticles[0].score / 4) : Math.min(0.98, 0.45 + topArticles[0].score / 4)
+    };
   }
 
   /**
@@ -235,11 +206,39 @@ export class FaqRagAnswerService implements SupportAnswerService {
       };
     }
 
+    const { text, threw } = await this.invokeLlm({
+      promptIntro: "Отвечай только на основе фрагментов документов ниже. Не придумывай новые факты.",
+      context,
+      knowledge: formatChunksForPrompt(strongChunks),
+      fallbackAnswer: bestChunk.content
+    });
+
+    return {
+      kind: "answer" as const,
+      message: text,
+      matchedArticleIds: [],
+      matchedChunkIds,
+      confidence: threw ? Math.min(0.7, bestChunk.similarity) : Math.min(0.9, bestChunk.similarity + 0.1)
+    };
+  }
+
+  /**
+   * Общая часть answer()/answerFromChunks(): строит промпт под конкретный источник знаний,
+   * вызывает LLM и деградирует к fallbackAnswer при пустом ответе или ошибке. threw=true —
+   * только когда сам вызов LLM бросил исключение (не когда ответ пустой) — это признак,
+   * по которому вызывающий код выбирает более низкий потолок уверенности.
+   */
+  private async invokeLlm(params: {
+    promptIntro: string;
+    context: SupportReplyContext;
+    knowledge: string;
+    fallbackAnswer: string;
+  }): Promise<{ text: string; threw: boolean }> {
     const prompt = ChatPromptTemplate.fromTemplate(
       [
         "Ты AI-помощник платформы поддержки компании {tenantName}.",
         "Стиль ответа: {toneOfVoice}.",
-        "Отвечай только на основе фрагментов документов ниже. Не придумывай новые факты.",
+        params.promptIntro,
         "Если данных недостаточно, честно скажи об этом и попроси уточнение.",
         "Контекст последних сообщений:",
         "{history}",
@@ -252,31 +251,18 @@ export class FaqRagAnswerService implements SupportAnswerService {
     );
 
     try {
-      const response = await prompt.pipe(this.llm).invoke({
-        tenantName: context.tenant.name,
-        toneOfVoice: context.widgetConfig.toneOfVoice,
-        history: mapRecentMessages(context.history),
-        knowledge: formatChunksForPrompt(strongChunks),
-        question: context.question
+      const response = await prompt.pipe(this.llm!).invoke({
+        tenantName: params.context.tenant.name,
+        toneOfVoice: params.context.widgetConfig.toneOfVoice,
+        history: mapRecentMessages(params.context.history),
+        knowledge: params.knowledge,
+        question: params.context.question
       });
 
-      const text = extractResponseText(response) || bestChunk.content;
-
-      return {
-        kind: "answer" as const,
-        message: text,
-        matchedArticleIds: [],
-        matchedChunkIds,
-        confidence: Math.min(0.9, bestChunk.similarity + 0.1)
-      };
+      return { text: extractResponseText(response) || params.fallbackAnswer, threw: false };
     } catch {
-      return {
-        kind: "answer" as const,
-        message: bestChunk.content,
-        matchedArticleIds: [],
-        matchedChunkIds,
-        confidence: Math.min(0.7, bestChunk.similarity)
-      };
+      // При ошибке LLM — деградируем к fallback-ответу
+      return { text: params.fallbackAnswer, threw: true };
     }
   }
 }

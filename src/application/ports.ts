@@ -97,6 +97,8 @@ export interface UserRepository {
   findById(id: string): Promise<User | null>;
   listByTenant(tenantId: string): Promise<User[]>;
   update(user: User): Promise<User>;
+  /** Общее число пользователей на платформе (для агрегированных метрик, без выгрузки всех строк) */
+  countAll(): Promise<number>;
 }
 
 export interface TopicRepository {
@@ -123,10 +125,14 @@ export interface DialogueSessionRepository {
   getById(id: string): Promise<DialogueSession | null>;
   create(session: DialogueSession): Promise<DialogueSession>;
   update(session: DialogueSession): Promise<DialogueSession>;
+  /** Общее число сессий на платформе (для агрегированных метрик, без выгрузки всех строк) */
+  countAll(): Promise<number>;
 }
 
 export interface MessageRepository {
   listBySession(sessionId: string): Promise<Message[]>;
+  /** Последние `limit` сообщений сессии в хронологическом порядке — для контекста LLM, без выгрузки всей истории */
+  listRecentBySession(sessionId: string, limit: number): Promise<Message[]>;
   create(message: Message): Promise<Message>;
 }
 

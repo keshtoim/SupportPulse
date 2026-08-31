@@ -102,14 +102,14 @@ export class PlatformAdministrationApplicationService {
   async getMetrics(actor: AuthenticatedUser) {
     ensureRole(actor, platformRoles);
 
-    const [tenants, tickets] = await Promise.all([
+    // countAll() — по одному агрегирующему запросу на весь платформенный total, а не по
+    // отдельному listByTenant на каждого тенанта (раньше это было N+1: 2 запроса на тенанта)
+    const [tenants, tickets, usersTotal, sessionsTotal] = await Promise.all([
       this.dependencies.tenantRepository.list(),
-      this.dependencies.ticketRepository.listAll()
+      this.dependencies.ticketRepository.listAll(),
+      this.dependencies.userRepository.countAll(),
+      this.dependencies.sessionRepository.countAll()
     ]);
-    const userBuckets = await Promise.all(tenants.map((tenant) => this.dependencies.userRepository.listByTenant(tenant.id)));
-    const sessionBuckets = await Promise.all(tenants.map((tenant) => this.dependencies.sessionRepository.listByTenant(tenant.id)));
-    const usersTotal = userBuckets.reduce((total, bucket) => total + bucket.length, 0);
-    const sessionsTotal = sessionBuckets.reduce((total, bucket) => total + bucket.length, 0);
 
     return {
       tenantsTotal: tenants.length,

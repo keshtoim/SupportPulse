@@ -164,8 +164,10 @@ export class WidgetSupportApplicationService {
       };
     }
 
+    // Промпту нужны только последние сообщения (mapRecentMessages берёт 6) — не вся история
+    // сессии, которая для долгого диалога может быть заметно длиннее того, что реально войдёт в LLM
     const [history, faqArticles, retrievedChunks] = await Promise.all([
-      this.dependencies.messageRepository.listBySession(session.id),
+      this.dependencies.messageRepository.listRecentBySession(session.id, 6),
       this.dependencies.faqRepository.listByTenant(tenantId),
       this.dependencies.knowledgeRetrievalService.search(tenantId, normalizedContent),
     ]);
