@@ -55,6 +55,7 @@ export function AdminExperience({
   const [closeReasonText, setCloseReasonText] = useState('')
   const [closeError, setCloseError] = useState<string | null>(null)
   const [companyKnowledge, setCompanyKnowledge] = useState<Topic[]>([])
+  const [companyDataLoading, setCompanyDataLoading] = useState(false)
   const [widgetConfig, setWidgetConfig] = useState<WidgetConfig | null>(null)
   const [settingsState, setSettingsState] = useState({
     brandColor: '#1F7AE0',
@@ -77,6 +78,7 @@ export function AdminExperience({
   const [selectedUploadFile, setSelectedUploadFile] = useState<File | null>(null)
   const [uploadingDocument, setUploadingDocument] = useState(false)
   const [tenants, setTenants] = useState<Tenant[]>([])
+  const [platformDataLoading, setPlatformDataLoading] = useState(false)
   const [platformMetrics, setPlatformMetrics] = useState<PlatformMetrics | null>(null)
   const [newTenantName, setNewTenantName] = useState('')
   const [tenantsNotice, setTenantsNotice] = useState<string | null>(null)
@@ -86,6 +88,7 @@ export function AdminExperience({
   const [newNoteDraft, setNewNoteDraft] = useState('')
   const [noteError, setNoteError] = useState<string | null>(null)
   const [templates, setTemplates] = useState<ResponseTemplate[]>([])
+  const [templatesLoading, setTemplatesLoading] = useState(false)
   const [showTemplatePicker, setShowTemplatePicker] = useState(false)
   const [showTemplateManager, setShowTemplateManager] = useState(false)
   const [templatesNotice, setTemplatesNotice] = useState<string | null>(null)
@@ -205,10 +208,13 @@ export function AdminExperience({
     }
 
     try {
+      setTemplatesLoading(true)
       const result = await authorizedRequest<ResponseTemplate[]>('/operator/templates')
       setTemplates(result)
     } catch (error) {
       setTemplatesNotice((error as Error).message)
+    } finally {
+      setTemplatesLoading(false)
     }
   }
 
@@ -221,6 +227,7 @@ export function AdminExperience({
     }
 
     try {
+      setCompanyDataLoading(true)
       const [knowledgeBase, config, documents] = await Promise.all([
         authorizedRequest<Topic[]>('/company/knowledge-base'),
         authorizedRequest<WidgetConfig>('/company/widget-config'),
@@ -240,6 +247,8 @@ export function AdminExperience({
       })
     } catch (error) {
       setSettingsNotice((error as Error).message)
+    } finally {
+      setCompanyDataLoading(false)
     }
   }
 
@@ -252,6 +261,7 @@ export function AdminExperience({
     }
 
     try {
+      setPlatformDataLoading(true)
       const [tenantList, metrics, auditEntries] = await Promise.all([
         authorizedRequest<Tenant[]>('/platform/tenants'),
         authorizedRequest<PlatformMetrics>('/platform/metrics'),
@@ -263,6 +273,8 @@ export function AdminExperience({
       setAuditLog(auditEntries)
     } catch (error) {
       setTenantsNotice((error as Error).message)
+    } finally {
+      setPlatformDataLoading(false)
     }
   }
 
@@ -317,6 +329,16 @@ export function AdminExperience({
       setUnseenTicketCount(0)
     }
   }, [screen])
+
+  // Счётчик непросмотренных тикетов дублируется в заголовке вкладки — заметно, даже если оператор свернул окно
+  useEffect(() => {
+    if (!auth) return
+    const baseTitle = document.title.replace(/^\(\d+\+?\)\s/, '')
+    document.title = unseenTicketCount > 0 ? `(${unseenTicketCount > 99 ? '99+' : unseenTicketCount}) ${baseTitle}` : baseTitle
+    return () => {
+      document.title = baseTitle
+    }
+  }, [auth, unseenTicketCount])
 
   // Polling: переписка обновляется каждые 5с, только пока оператор реально смотрит на очередь —
   // иначе после ухода на другой экран (Настройки, База знаний...) опрос продолжался бы вхолостую,
@@ -1073,7 +1095,11 @@ export function AdminExperience({
                           )}
                         </div>
                       ))}
-                      {templates.length === 0 && <div class="empty-state">Шаблонов пока нет — добавьте первый выше.</div>}
+                      {templates.length === 0 && (
+                        <div class="empty-state">
+                          {templatesLoading ? 'Загружаю шаблоны...' : 'Шаблонов пока нет — добавьте первый выше.'}
+                        </div>
+                      )}
                     </div>
                   </section>
                 )}
@@ -1111,13 +1137,17 @@ export function AdminExperience({
                         onClick={() => setSelectedTicketId(ticket.id)}
                       >
                         <strong>{statusLabel[ticket.status]}</strong>
-                        <span>Сессия: {ticket.sessionId.slice(0, 12)}...</span>
-                        <span>Причина: {ticket.reason}</span>
+                        <span>{ticket.reason}</span>
+                        <span class="ticket-list-item-meta">Открыт {formatDateTime(ticket.createdAt)}</span>
                       </button>
                     ))}
                     {filteredTickets.length === 0 && (
                       <div class="empty-state">
-                        {tickets.length === 0 ? 'Активных тикетов пока нет.' : 'Нет тикетов с таким статусом.'}
+                        {ticketsLoading
+                          ? 'Загружаю тикеты...'
+                          : tickets.length === 0
+                            ? 'Активных тикетов пока нет.'
+                            : 'Нет тикетов с таким статусом.'}
                       </div>
                     )}
                   </aside>
@@ -1266,7 +1296,9 @@ export function AdminExperience({
                                 <span>{template.content.slice(0, 80)}</span>
                               </button>
                             ))}
-                            {templates.length === 0 && <div class="empty-state">Шаблонов пока нет.</div>}
+                            {templates.length === 0 && (
+                              <div class="empty-state">{templatesLoading ? 'Загружаю...' : 'Шаблонов пока нет.'}</div>
+                            )}
                           </div>
                         )}
 
@@ -1466,7 +1498,11 @@ export function AdminExperience({
                         ))}
                     </article>
                   ))}
-                  {companyKnowledge.length === 0 && <div class="empty-state">Тем пока нет — добавьте первую выше.</div>}
+                  {companyKnowledge.length === 0 && (
+                    <div class="empty-state">
+                      {companyDataLoading ? 'Загружаю базу знаний...' : 'Тем пока нет — добавьте первую выше.'}
+                    </div>
+                  )}
                 </div>
 
                 <h3 class="screen-section-title">Файлы базы знаний</h3>
@@ -1512,7 +1548,9 @@ export function AdminExperience({
                       )}
                     </article>
                   ))}
-                  {knowledgeDocuments.length === 0 && <div class="empty-state">Файлы пока не загружены.</div>}
+                  {knowledgeDocuments.length === 0 && (
+                    <div class="empty-state">{companyDataLoading ? 'Загружаю файлы...' : 'Файлы пока не загружены.'}</div>
+                  )}
                 </div>
               </div>
             )}
@@ -1585,7 +1623,11 @@ export function AdminExperience({
                       )}
                     </article>
                   ))}
-                  {tenants.length === 0 && <div class="empty-state">Тенантов пока нет — создайте первого выше.</div>}
+                  {tenants.length === 0 && (
+                    <div class="empty-state">
+                      {platformDataLoading ? 'Загружаю тенантов...' : 'Тенантов пока нет — создайте первого выше.'}
+                    </div>
+                  )}
                 </div>
 
                 <h3 class="screen-section-title">Журнал аудита</h3>
@@ -1607,7 +1649,9 @@ export function AdminExperience({
                       )}
                     </article>
                   ))}
-                  {auditLog.length === 0 && <div class="empty-state">Записей аудита пока нет.</div>}
+                  {auditLog.length === 0 && (
+                    <div class="empty-state">{platformDataLoading ? 'Загружаю журнал...' : 'Записей аудита пока нет.'}</div>
+                  )}
                 </div>
               </div>
             )}

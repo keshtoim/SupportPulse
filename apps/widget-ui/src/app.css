@@ -1533,6 +1533,11 @@ html.embed-mode .widget-shell {
   font-size: 13px;
 }
 
+.ticket-list-item span.ticket-list-item-meta {
+  color: #9aa3b5;
+  font-size: 11px;
+}
+
 .status-filter-row {
   display: flex;
   flex-wrap: wrap;
