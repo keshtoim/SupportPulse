@@ -1,12 +1,69 @@
+/* ============ ДИЗАЙН-ТОКЕНЫ ============
+   Палитра "Pulse": единственный акцент — Pulse Blue; статусы тикетов — отдельная
+   семантика, не акцент. --night/--on-night фиксированы и не зависят от темы —
+   используются для поверхностей, которые всегда тёмные по замыслу (шапка виджета,
+   боковая панель админки), в отличие от --ink, который держит текстовый цвет и
+   переключится в тёмной теме (пока не реализована — токены готовы к этому шагу). */
+:root {
+  --ink: #12151c;
+  --ink-soft: #3a4254;
+  --paper: #f4f5f9;
+  --surface: #ffffff;
+  --surface-2: #eceef4;
+  --border: #e1e4ec;
+  --muted: #667085;
+  --muted-2: #9aa2b4;
+
+  --accent: #2e5eff;
+  --accent-tint: #e8edff;
+  --accent-tint-2: #d8e1ff;
+
+  --status-new: #e5484d;
+  --status-new-tint: #fdeced;
+  --status-progress: #c98a12;
+  --status-progress-tint: #fbf1de;
+  --status-waiting: #0ea5e9;
+  --status-waiting-tint: #e4f6fd;
+  --status-closed: #1f8a5f;
+  --status-closed-tint: #e5f5ee;
+
+  --night: #12151c;
+  --on-night: #f4f5f9;
+  --on-night-soft: rgba(244, 245, 249, 0.7);
+  --on-night-mute: rgba(244, 245, 249, 0.45);
+  --on-accent: #ffffff;
+
+  --shadow-sm: 0 1px 2px rgba(18, 21, 28, 0.06);
+  --shadow-md: 0 8px 24px rgba(18, 21, 28, 0.1);
+  --shadow-lg: 0 20px 48px rgba(18, 21, 28, 0.16);
+
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-ui: "Manrope", -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
+}
+
 .app-root {
   min-height: 100svh;
   padding: 10px;
   box-sizing: border-box;
+  font-family: var(--font-ui);
 }
 
 .app-root.admin-mode {
   padding: 0;
-  background: #f6f7fb;
+  background: var(--paper);
   display: flex;
   flex-direction: column;
   min-height: 100svh;
@@ -32,13 +89,13 @@ html.embed-mode .widget-shell {
 .mode-switch {
   width: min(1040px, 100%);
   margin: 0 auto 10px;
-  background: #fff;
+  background: var(--surface);
   border-radius: 12px;
   padding: 6px;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 6px;
-  box-shadow: 0 2px 10px rgba(28, 45, 76, 0.08);
+  box-shadow: var(--shadow-sm);
 }
 
 .admin-mode .mode-switch {
@@ -56,22 +113,24 @@ html.embed-mode .widget-shell {
   font-weight: 700;
   background: transparent;
   cursor: pointer;
+  font-family: inherit;
+  color: var(--ink-soft);
 }
 
 .mode-switch-button.active {
-  background: #4b94ff;
-  color: #fff;
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
 .widget-shell {
   width: min(430px, 100%);
   min-height: calc(100svh - 56px);
   margin: 0 auto;
-  background: #f2f3f7;
+  background: var(--paper);
   display: flex;
   flex-direction: column;
   position: relative;
-  color: #202531;
+  color: var(--ink);
   border-radius: 22px;
   overflow: hidden;
   box-shadow: 0 8px 26px rgba(25, 42, 73, 0.18);
@@ -83,8 +142,8 @@ html.embed-mode .widget-shell {
   grid-template-columns: 40px 1fr 40px;
   align-items: center;
   gap: 10px;
-  background: #fff;
-  border-bottom: 1px solid #eaecf2;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
 }
 
 .icon-button {
@@ -92,10 +151,10 @@ html.embed-mode .widget-shell {
   border-radius: 999px;
   width: 36px;
   height: 36px;
-  background: #f0f2f7;
+  background: var(--surface-2);
   display: grid;
   place-items: center;
-  color: #1f2430;
+  color: var(--ink);
   cursor: pointer;
 }
 
@@ -165,7 +224,7 @@ html.embed-mode .widget-shell {
 .brand-copy span {
   font-size: 12px;
   font-weight: 600;
-  color: #6a7382;
+  color: var(--muted);
 }
 
 .screen-body {
@@ -177,20 +236,40 @@ html.embed-mode .widget-shell {
   overflow-y: auto;
 }
 
-/* Большой градиентный hero — главный экран виджета */
+/* Большой градиентный hero — главный экран виджета. Красится в --brand-color тенанта —
+   это настраиваемая кастомизация бренда, поэтому фон остаётся динамическим. "Pulse"-линия
+   (::after) поверх градиента — фирменный сигнальный мотив, полупрозрачная обводка работает
+   поверх любого выбранного тенантом цвета. */
 .widget-hero {
-  background: linear-gradient(160deg, var(--brand-color, #6a8fff) 0%, color-mix(in srgb, var(--brand-color, #6a8fff) 45%, #a87bff) 100%);
-  padding: 36px 20px 44px;
+  position: relative;
+  background: linear-gradient(160deg, var(--brand-color, #2e5eff) 0%, color-mix(in srgb, var(--brand-color, #2e5eff) 45%, #a87bff) 100%);
+  padding: 36px 20px 46px;
   text-align: center;
-  color: #fff;
+  color: var(--on-accent);
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.widget-hero::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 34px;
+  opacity: 0.5;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 34' preserveAspectRatio='none'%3E%3Cpolyline points='0,24 150,24 168,6 186,30 204,14 222,24 400,24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 .widget-hero h1 {
+  position: relative;
   margin: 0;
-  font-size: 26px;
-  font-weight: 800;
-  letter-spacing: -0.3px;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 27px;
+  letter-spacing: -0.01em;
 }
 
 .hero-banner {
@@ -211,10 +290,11 @@ html.embed-mode .widget-shell {
 }
 
 .card {
-  background: #fff;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 18px;
   padding: 14px;
-  box-shadow: 0 2px 10px rgba(25, 42, 73, 0.08);
+  box-shadow: var(--shadow-sm);
 }
 
 /* Intro-карточка: иконка слева, текст справа, кнопка снизу */
@@ -239,15 +319,16 @@ html.embed-mode .widget-shell {
   margin: 0;
   font-size: 14px;
   line-height: 1.5;
-  color: #3a4254;
+  color: var(--ink-soft);
 }
 
 .primary-button {
   border: none;
   border-radius: 14px;
   min-height: 48px;
-  color: #fff;
-  background: var(--brand-color, #4b94ff);
+  color: var(--on-accent);
+  background: var(--brand-color, var(--accent));
+  font-family: inherit;
   font-size: 16px;
   font-weight: 700;
   cursor: pointer;
@@ -255,7 +336,7 @@ html.embed-mode .widget-shell {
 }
 
 .primary-button:hover {
-  background: color-mix(in srgb, var(--brand-color, #4b94ff) 85%, black);
+  background: color-mix(in srgb, var(--brand-color, var(--accent)) 85%, black);
 }
 
 .feature-card {
@@ -284,8 +365,8 @@ html.embed-mode .widget-shell {
 
 .accordion-item {
   width: 100%;
-  background: #fff;
-  border: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 14px;
   min-height: 52px;
   padding: 0 16px;
@@ -294,14 +375,14 @@ html.embed-mode .widget-shell {
   justify-content: space-between;
   font-size: 15px;
   font-weight: 600;
-  color: #202531;
+  font-family: inherit;
+  color: var(--ink);
   cursor: pointer;
-  box-shadow: 0 1px 6px rgba(25, 42, 73, 0.07);
   text-align: left;
 }
 
 .accordion-item svg {
-  color: #9aa3b8;
+  color: var(--muted-2);
   flex-shrink: 0;
 }
 
@@ -326,15 +407,15 @@ html.embed-mode .widget-shell {
   border-radius: 10px;
   overflow: hidden;
   flex-shrink: 0;
-  background: #eef0f6;
+  background: var(--surface-2);
 }
 
 .chat-avatar-placeholder {
   width: 32px;
   height: 32px;
   border-radius: 10px;
-  background: linear-gradient(135deg, var(--brand-color, #4b94ff), color-mix(in srgb, var(--brand-color, #4b94ff) 55%, #8f40f0));
-  color: #fff;
+  background: linear-gradient(135deg, var(--brand-color, var(--accent)), color-mix(in srgb, var(--brand-color, var(--accent)) 55%, #8f40f0));
+  color: var(--on-accent);
   font-size: 12px;
   font-weight: 700;
   display: grid;
@@ -345,8 +426,9 @@ html.embed-mode .widget-shell {
   max-width: calc(100% - 46px);
   border-radius: 16px;
   padding: 12px 14px;
-  background: #fff;
-  box-shadow: 0 2px 8px rgba(25, 42, 73, 0.08);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
 }
 
 .chat-bubble p {
@@ -358,13 +440,14 @@ html.embed-mode .widget-shell {
 .bubble-time {
   display: block;
   font-size: 11px;
-  color: #9aa3b8;
+  font-family: var(--font-mono);
+  color: var(--muted-2);
   text-align: right;
 }
 
 .widget-footer {
-  background: #fff;
-  border-top: 1px solid #eaecf2;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
   margin-top: auto;
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -375,10 +458,11 @@ html.embed-mode .widget-shell {
 .tab-button {
   min-height: 60px;
   border: none;
-  background: #fff;
+  background: var(--surface);
   font-size: 11px;
   font-weight: 600;
-  color: #8a93a8;
+  font-family: inherit;
+  color: var(--muted-2);
   display: grid;
   place-items: center;
   gap: 3px;
@@ -399,15 +483,16 @@ html.embed-mode .widget-shell {
 }
 
 .tab-button.active {
-  color: var(--brand-color, #4b94ff);
+  color: var(--brand-color, var(--accent));
 }
 
 .composer {
   margin: 0 14px 14px;
   padding: 8px 8px 8px 14px;
-  background: #fff;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 999px;
-  box-shadow: 0 2px 12px rgba(25, 42, 73, 0.12);
+  box-shadow: var(--shadow-sm);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -418,13 +503,14 @@ html.embed-mode .widget-shell {
   border: none;
   outline: none;
   font-size: 14px;
+  font-family: inherit;
   flex: 1;
   background: transparent;
-  color: #202531;
+  color: var(--ink);
 }
 
 .composer input::placeholder {
-  color: #b0b8cc;
+  color: var(--muted-2);
 }
 
 .composer-plus {
@@ -432,12 +518,12 @@ html.embed-mode .widget-shell {
   border-radius: 50%;
   width: 32px;
   height: 32px;
-  background: #f0f2f7;
+  background: var(--surface-2);
   display: grid;
   place-items: center;
   cursor: pointer;
   flex-shrink: 0;
-  color: #5a6278;
+  color: var(--ink-soft);
 }
 
 .composer-send {
@@ -446,8 +532,8 @@ html.embed-mode .widget-shell {
   width: 36px;
   height: 36px;
   /* Тёмная база гарантирует контраст независимо от выбранного tenant'ом цвета, брендовый оттенок — для узнаваемости */
-  background: color-mix(in srgb, var(--brand-color, #4b94ff) 40%, #202531);
-  color: #fff;
+  background: color-mix(in srgb, var(--brand-color, var(--accent)) 40%, var(--night));
+  color: var(--on-accent);
   display: grid;
   place-items: center;
   cursor: pointer;
@@ -479,7 +565,7 @@ html.embed-mode .widget-shell {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #b0b8cc;
+  background: var(--muted-2);
   animation: typing-bounce 1.2s ease-in-out infinite;
 }
 
@@ -491,10 +577,14 @@ html.embed-mode .widget-shell {
   30% { transform: translateY(-5px); opacity: 1; }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .typing-dot { animation: none; }
+}
+
 .admin-shell {
   flex: 1;
   min-height: 0;
-  background: #f6f7fb;
+  background: var(--paper);
   border-radius: 0;
   display: grid;
   grid-template-columns: 248px 1fr;
@@ -502,9 +592,12 @@ html.embed-mode .widget-shell {
   box-shadow: none;
 }
 
+/* Боковая панель — фиксированно тёмная (--night), как и шапка виджета: не зависит от
+   темы страницы, держит акцент навигации отдельно от контентной зоны */
 .admin-sidebar {
-  background: #fff;
-  border-right: 1px solid #e4e6ef;
+  background: var(--night);
+  color: var(--on-night-soft);
+  border-right: 1px solid var(--border);
   padding: 16px 14px;
   display: flex;
   flex-direction: column;
@@ -516,13 +609,14 @@ html.embed-mode .widget-shell {
   display: flex;
   align-items: center;
   gap: 6px;
-  border-bottom: 1px solid #e4e6ef;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
   padding: 2px 4px 8px;
 }
 
 .back-button {
   border: none;
   background: transparent;
+  color: var(--on-night);
   font-size: 26px;
   line-height: 1;
   cursor: pointer;
@@ -531,6 +625,7 @@ html.embed-mode .widget-shell {
 .panel-header strong {
   font-size: 18px;
   letter-spacing: 0.3px;
+  color: var(--on-night);
 }
 
 .dashboard-menu {
@@ -543,19 +638,23 @@ html.embed-mode .widget-shell {
   display: flex;
   align-items: center;
   gap: 8px;
+  padding: 4px 8px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  margin-bottom: 6px;
 }
 
 .dashboard-brand strong {
   display: block;
   font-size: 14px;
   line-height: 1.2;
+  color: var(--on-night);
 }
 
 .dashboard-brand p {
   font-size: 12px;
   margin: 0;
-  line-height: 1;
-  color: #666;
+  line-height: 1.3;
+  color: var(--on-night-mute);
 }
 
 .dashboard-grid {
@@ -567,7 +666,7 @@ html.embed-mode .widget-shell {
 .dashboard-tile,
 .dashboard-wide-tile {
   border: none;
-  border-radius: 10px;
+  border-radius: 9px;
   background: transparent;
   padding: 0 10px;
   min-height: 44px;
@@ -575,9 +674,10 @@ html.embed-mode .widget-shell {
   display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 600;
-  color: #2c3140;
+  font-family: inherit;
+  color: var(--on-night-soft);
   cursor: pointer;
   text-align: left;
   transition: background-color 0.12s ease;
@@ -585,31 +685,32 @@ html.embed-mode .widget-shell {
 
 .dashboard-tile:hover,
 .dashboard-wide-tile:hover {
-  background: #f3f1ff;
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .dashboard-tile.active,
 .dashboard-wide-tile.active {
-  background: linear-gradient(135deg, #4b94ff, #8f6bff);
-  color: #fff;
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  color: var(--on-night);
   font-weight: 700;
 }
 
 .dashboard-tile.active .tile-icon,
 .dashboard-wide-tile.active .tile-icon {
-  border-color: rgba(255, 255, 255, 0.6);
-  color: #fff;
+  border-color: transparent;
+  color: var(--on-night);
 }
 
 .tile-icon {
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border-radius: 8px;
-  border: 1.5px solid #d8dbe4;
+  border: none;
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  color: #4b5468;
+  color: var(--on-night-soft);
+  opacity: 0.9;
 }
 
 .tile-icon svg {
@@ -621,7 +722,7 @@ html.embed-mode .widget-shell {
   display: flex;
   flex-direction: column;
   gap: 0;
-  border-top: 1px solid #e4e6ef;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
 }
 
 .admin-nav-item {
@@ -656,7 +757,7 @@ html.embed-mode .widget-shell {
 .side-bottom-nav {
   display: none;
   margin-top: auto;
-  border: 1px solid #d6d9e4;
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 12px;
   padding: 8px;
   grid-template-columns: repeat(4, 1fr);
@@ -664,10 +765,11 @@ html.embed-mode .widget-shell {
 }
 
 .mini-nav-button {
-  border: 2px solid #2c3140;
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 8px;
   min-height: 36px;
-  background: #fff;
+  background: transparent;
+  color: var(--on-night-soft);
   cursor: pointer;
   display: grid;
   place-items: center;
@@ -679,7 +781,9 @@ html.embed-mode .widget-shell {
 }
 
 .mini-nav-button.active {
-  background: #edf2ff;
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  color: var(--on-night);
+  border-color: transparent;
 }
 
 .dashboard-tile,
@@ -695,8 +799,8 @@ html.embed-mode .widget-shell {
   height: 18px;
   padding: 0 4px;
   border-radius: 999px;
-  background: #e0433d;
-  color: #fff;
+  background: var(--status-new);
+  color: var(--on-accent);
   font-size: 11px;
   font-weight: 700;
   line-height: 18px;
@@ -711,11 +815,12 @@ html.embed-mode .widget-shell {
   max-width: 320px;
   padding: 12px 14px;
   border-radius: 12px;
-  background: #1d2430;
-  color: #fff;
+  background: var(--night);
+  color: var(--on-night);
+  font-family: var(--font-ui);
   font-size: 13px;
   font-weight: 600;
-  box-shadow: 0 8px 22px rgba(25, 42, 73, 0.28);
+  box-shadow: var(--shadow-lg);
   animation: toast-in 0.2s ease-out;
 }
 
@@ -724,9 +829,13 @@ html.embed-mode .widget-shell {
   to { transform: translateY(0); opacity: 1; }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .ticket-toast { animation: none; }
+}
+
 .admin-content {
   padding: 28px 32px;
-  background: #f6f7fb;
+  background: var(--paper);
   overflow: auto;
 }
 
@@ -753,8 +862,8 @@ html.embed-mode .widget-shell {
   grid-template-columns: 1fr auto;
   align-items: center;
   border-radius: 10px;
-  background: #c9e2ff;
-  border: 2px solid #8fa6c2;
+  background: var(--accent-tint);
+  border: 1px solid var(--accent-tint-2);
   padding: 8px 16px;
 }
 
@@ -769,21 +878,23 @@ html.embed-mode .widget-shell {
   width: 54px;
   height: 54px;
   border-radius: 50%;
-  border: 3px solid #1f2430;
+  border: 2px solid var(--border);
+  background: var(--surface);
   display: grid;
   place-items: center;
   font-size: 24px;
+  font-family: var(--font-mono);
 }
 
 .knowledge-card {
-  background: #fff;
+  background: var(--surface);
   border-radius: 14px;
   padding: 14px;
   display: grid;
   grid-template-columns: 48px 1fr;
   gap: 14px;
   align-items: start;
-  border: 1px solid #d8dbe4;
+  border: 1px solid var(--border);
 }
 
 .brand-icon.large {
@@ -823,9 +934,11 @@ html.embed-mode .widget-shell {
   min-width: 96px;
   min-height: 36px;
   border-radius: 999px;
-  border: 2px solid #b4c6dd;
-  background: #d1e8ff;
-  font-size: 16px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink-soft);
+  font-family: inherit;
+  font-size: 13px;
   font-weight: 700;
   cursor: pointer;
 }
@@ -881,7 +994,7 @@ html.embed-mode .widget-shell {
 
 .form-hint {
   margin: -4px 0 10px;
-  color: #9ca2b2;
+  color: var(--muted-2);
   font-size: 14px;
 }
 
@@ -894,17 +1007,20 @@ html.embed-mode .widget-shell {
 .toggle-pill {
   min-width: 160px;
   min-height: 44px;
-  border: none;
+  border: 1px solid var(--border);
   border-radius: 999px;
-  background: #e9edf5;
-  font-size: 16px;
+  background: var(--surface);
+  color: var(--ink-soft);
+  font-family: inherit;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
 }
 
 .toggle-pill.active {
-  color: #fff;
-  background: linear-gradient(150deg, #4d98ff, #aa8eff);
+  color: var(--on-accent);
+  border-color: var(--accent);
+  background: var(--accent);
 }
 
 .form-label {
@@ -912,14 +1028,17 @@ html.embed-mode .widget-shell {
   margin-bottom: 8px;
   font-size: 22px;
   font-weight: 700;
+  color: var(--ink);
 }
 
 .text-input,
 .text-area {
   width: 100%;
   border-radius: 12px;
-  border: 1px solid #dbe3f1;
-  background: #fff;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: inherit;
   padding: 10px 12px;
   font-size: 16px;
   margin-bottom: 14px;
@@ -940,7 +1059,8 @@ html.embed-mode .widget-shell {
 }
 
 .news-card {
-  background: #f3f1ff;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 20px 22px;
 }
@@ -953,8 +1073,8 @@ html.embed-mode .widget-shell {
 }
 
 .news-badge {
-  background: #6c47ff;
-  color: #fff;
+  background: var(--accent);
+  color: var(--on-accent);
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -965,27 +1085,28 @@ html.embed-mode .widget-shell {
 
 .news-date {
   font-size: 12px;
-  color: #8b8fa8;
+  font-family: var(--font-mono);
+  color: var(--muted);
 }
 
 .news-title {
   margin: 0 0 8px;
   font-size: 16px;
   font-weight: 700;
-  color: #1a1a2e;
+  color: var(--ink);
 }
 
 .news-body {
   margin: 0;
   font-size: 13px;
   line-height: 1.6;
-  color: #444;
+  color: var(--ink-soft);
 }
 
 .profile-layout {
   display: grid;
   grid-template-columns: 1fr 280px;
-  border-left: 1px solid #d8dbe4;
+  border-left: 1px solid var(--border);
 }
 
 .profile-main {
@@ -993,7 +1114,7 @@ html.embed-mode .widget-shell {
 }
 
 .profile-side {
-  border-left: 1px solid #d8dbe4;
+  border-left: 1px solid var(--border);
   padding-left: 18px;
 }
 
@@ -1006,7 +1127,8 @@ html.embed-mode .widget-shell {
   width: 120px;
   height: 120px;
   border-radius: 50%;
-  border: 4px solid #1f2430;
+  border: 2px solid var(--border);
+  background: var(--surface-2);
   display: grid;
   place-items: center;
   margin-bottom: 12px;
@@ -1047,7 +1169,7 @@ html.embed-mode .widget-shell {
 
   .profile-side {
     border-left: none;
-    border-top: 1px solid #d8dbe4;
+    border-top: 1px solid var(--border);
     margin-top: 10px;
     padding-top: 10px;
     padding-left: 0;
@@ -1114,7 +1236,7 @@ html.embed-mode .widget-shell {
     align-items: center;
     padding: 6px 10px;
     border-right: none;
-    border-bottom: 1px solid #dadde7;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.14);
     gap: 0;
   }
 
@@ -1177,13 +1299,14 @@ html.embed-mode .widget-shell {
 
 .compact-card p {
   margin: 8px 0 0;
-  color: #60697a;
+  color: var(--muted);
   line-height: 1.35;
 }
 
 .note-item {
-  background: #fffaf0;
-  border: 1px solid #f0d999;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  box-shadow: none;
 }
 
 .widget-intro-card {
@@ -1231,20 +1354,22 @@ html.embed-mode .widget-shell {
 .topic-header span {
   display: block;
   margin-top: 6px;
-  color: #6a7382;
+  color: var(--muted);
   font-size: 14px;
 }
 
 .faq-item {
   width: 100%;
   text-align: left;
-  border: 1px solid #dde3ef;
-  background: #fafbfd;
+  border: 1px solid var(--border);
+  background: var(--surface);
   border-radius: 16px;
   padding: 14px;
   display: grid;
   gap: 6px;
   cursor: pointer;
+  font-family: inherit;
+  color: var(--ink);
 }
 
 .faq-item strong {
@@ -1254,7 +1379,7 @@ html.embed-mode .widget-shell {
 .faq-item span,
 .faq-item p {
   margin: 0;
-  color: #5f6777;
+  color: var(--muted);
   line-height: 1.35;
 }
 
@@ -1264,12 +1389,12 @@ html.embed-mode .widget-shell {
   justify-content: space-between;
   gap: 10px;
   padding: 6px 10px;
-  background: #f0f4ff;
+  background: var(--accent-tint);
   border-radius: 14px;
 }
 
 .helper-hint {
-  color: #9aa3b8;
+  color: var(--muted-2);
   font-size: 11px;
   letter-spacing: 0.02em;
 }
@@ -1287,15 +1412,17 @@ html.embed-mode .widget-shell {
   justify-content: space-between;
   gap: 10px;
   margin-bottom: 8px;
-  font-size: 12px;
+  font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #7d8494;
+  letter-spacing: 0.06em;
+  font-family: var(--font-mono);
+  color: var(--muted-2);
 }
 
 .chat-bubble.client {
-  background: var(--brand-color, #4b94ff);
-  color: #fff;
+  background: var(--brand-color, var(--accent));
+  color: var(--on-accent);
+  border-color: transparent;
   border-bottom-right-radius: 4px;
 }
 
@@ -1308,28 +1435,31 @@ html.embed-mode .widget-shell {
 }
 
 .chat-bubble.operator {
-  background: #eef4ff;
+  background: var(--accent-tint);
+  border-color: transparent;
   border-bottom-left-radius: 4px;
 }
 
 .chat-bubble.system {
-  background: #f3f4f7;
+  background: var(--surface-2);
+  border: 1px dashed var(--border);
   border-radius: 12px;
   font-size: 12px;
-  color: #6a7382;
+  color: var(--muted);
   text-align: center;
   max-width: 100%;
 }
 
 .secondary-button,
 .secondary-link {
-  border: none;
+  border: 1px solid var(--border);
   border-radius: 14px;
-  background: #e9eef8;
-  color: #263248;
+  background: var(--surface);
+  color: var(--ink-soft);
+  font-family: inherit;
   min-height: 52px;
   padding: 0 20px;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
   cursor: pointer;
 }
@@ -1337,12 +1467,13 @@ html.embed-mode .widget-shell {
 /* Акцент для действий, переводящих тикет в закрытое состояние — тот же зелёный,
    что и статус "Закрыт" в списке слева, чтобы визуально читалось как одно и то же */
 .secondary-button.tint-green {
-  background: #e3f6ec;
-  color: #14663f;
+  background: var(--status-closed-tint);
+  border-color: transparent;
+  color: var(--status-closed);
 }
 
 .secondary-button.tint-green:hover:not(:disabled) {
-  background: #cdeee0;
+  filter: brightness(0.97);
 }
 
 .secondary-button:disabled {
@@ -1363,28 +1494,29 @@ html.embed-mode .widget-shell {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   min-height: 34px;
   padding: 0 14px;
   border-radius: 999px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
-  background: #e7efff;
-  color: #2256b0;
+  background: var(--accent-tint);
+  color: var(--accent);
 }
 
 .status-pill.operator {
-  background: #fff3de;
-  color: #9a5b00;
+  background: var(--status-progress-tint);
+  color: var(--status-progress);
 }
 
 .status-pill.ai {
-  background: #e5f6ec;
-  color: #0a7c47;
+  background: var(--status-closed-tint);
+  color: var(--status-closed);
 }
 
 .status-pill.ai-fallback {
-  background: #fff3de;
-  color: #9a5b00;
+  background: var(--status-progress-tint);
+  color: var(--status-progress);
 }
 
 .status-left {
@@ -1397,7 +1529,7 @@ html.embed-mode .widget-shell {
   position: relative;
   display: inline-flex;
   align-items: center;
-  color: #8a93a8;
+  color: var(--muted-2);
   cursor: help;
 }
 
@@ -1407,8 +1539,8 @@ html.embed-mode .widget-shell {
   top: calc(100% + 8px);
   left: 50%;
   transform: translateX(-50%);
-  background: #1a2132;
-  color: #fff;
+  background: var(--night);
+  color: var(--on-night);
   padding: 7px 10px;
   border-radius: 8px;
   font-size: 12px;
@@ -1431,8 +1563,9 @@ html.embed-mode .widget-shell {
   margin: 0 16px;
   padding: 12px 14px;
   border-radius: 16px;
-  background: #edf2ff;
-  color: #26448b;
+  background: var(--accent-tint);
+  color: var(--ink);
+  border: 1px solid var(--accent-tint-2);
 }
 
 .alert-banner.compact {
@@ -1440,13 +1573,15 @@ html.embed-mode .widget-shell {
 }
 
 .alert-banner.error {
-  background: #ffe7e7;
-  color: #912626;
+  background: var(--status-new-tint);
+  color: var(--status-new);
+  border-color: transparent;
 }
 
 .alert-banner.success {
-  background: #e5f7eb;
-  color: #157046;
+  background: var(--status-closed-tint);
+  color: var(--status-closed);
+  border-color: transparent;
 }
 
 .loading-card {
@@ -1471,13 +1606,15 @@ html.embed-mode .widget-shell {
 
 .stat-card strong {
   display: block;
-  color: #697184;
+  color: var(--muted);
+  font-weight: 500;
   margin-bottom: 8px;
 }
 
 .stat-card span {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
+  font-family: var(--font-mono);
 }
 
 .ticket-layout {
@@ -1495,47 +1632,82 @@ html.embed-mode .widget-shell {
 .ticket-list-item {
   width: 100%;
   text-align: left;
-  border: 1px solid #d9deea;
+  border: 1px solid var(--border);
   border-left: 4px solid transparent;
   border-radius: 14px;
-  background: #fff;
+  background: var(--surface);
   padding: 14px;
   display: grid;
   gap: 4px;
   cursor: pointer;
+  font-family: inherit;
+  --status-color: var(--muted-2);
+  --status-tint: var(--surface-2);
 }
 
 .ticket-list-item[data-status="new"] {
-  border-left-color: #e0433d;
+  border-left-color: var(--status-new);
+  --status-color: var(--status-new);
+  --status-tint: var(--status-new-tint);
 }
 
 .ticket-list-item[data-status="in_progress"] {
-  border-left-color: #d69a1f;
+  border-left-color: var(--status-progress);
+  --status-color: var(--status-progress);
+  --status-tint: var(--status-progress-tint);
 }
 
 .ticket-list-item[data-status="waiting_client"] {
-  border-left-color: #4b94ff;
+  border-left-color: var(--status-waiting);
+  --status-color: var(--status-waiting);
+  --status-tint: var(--status-waiting-tint);
 }
 
 .ticket-list-item[data-status="closed"] {
-  border-left-color: #2f9e6e;
+  border-left-color: var(--status-closed);
+  --status-color: var(--status-closed);
+  --status-tint: var(--status-closed-tint);
 }
 
 .ticket-list-item.active {
-  background: #eef4ff;
-  border-top-color: #87a6ef;
-  border-right-color: #87a6ef;
-  border-bottom-color: #87a6ef;
+  background: var(--accent-tint);
+  border-top-color: var(--accent);
+  border-right-color: var(--accent);
+  border-bottom-color: var(--accent);
 }
 
 .ticket-list-item span {
-  color: #657083;
+  color: var(--muted);
   font-size: 13px;
 }
 
 .ticket-list-item span.ticket-list-item-meta {
-  color: #9aa3b5;
+  color: var(--muted-2);
   font-size: 11px;
+  font-family: var(--font-mono);
+}
+
+/* Статус — это форма, не только слово: цветная точка перед подписью читается на бегу,
+   цвет наследуется от --status-color/--status-tint выше по data-status родителя */
+.ticket-list-item strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  padding: 3px 9px 3px 8px;
+  border-radius: 999px;
+  background: var(--status-tint);
+  color: var(--status-color);
+  font-size: 12px;
+}
+
+.ticket-list-item strong::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
 }
 
 .status-filter-row {
@@ -1548,10 +1720,11 @@ html.embed-mode .widget-shell {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  border: 1px solid #d9deea;
+  border: 1px solid var(--border);
   border-radius: 999px;
-  background: #fff;
-  color: #4b5468;
+  background: var(--surface);
+  color: var(--ink-soft);
+  font-family: inherit;
   padding: 5px 10px;
   font-size: 12px;
   font-weight: 600;
@@ -1559,13 +1732,14 @@ html.embed-mode .widget-shell {
 }
 
 .status-filter-chip.active {
-  background: #1f2430;
-  border-color: #1f2430;
-  color: #fff;
+  background: var(--night);
+  border-color: var(--night);
+  color: var(--on-night);
 }
 
 .status-filter-count {
   font-size: 11px;
+  font-family: var(--font-mono);
   opacity: 0.75;
 }
 
@@ -1582,7 +1756,7 @@ html.embed-mode .widget-shell {
 
 .thread-header p {
   margin: 0;
-  color: #6c7383;
+  color: var(--muted);
 }
 
 .thread-actions {
@@ -1606,11 +1780,11 @@ html.embed-mode .widget-shell {
 }
 
 .empty-state {
-  border: 1px dashed #c9d2e4;
+  border: 1px dashed var(--border);
   border-radius: 16px;
   padding: 20px;
-  color: #697184;
-  background: #fafcff;
+  color: var(--muted);
+  background: var(--surface-2);
 }
 
 .text-input.small {
