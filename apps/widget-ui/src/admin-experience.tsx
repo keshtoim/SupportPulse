@@ -316,12 +316,14 @@ export function AdminExperience({
     }
   }, [screen])
 
-  // Polling: переписка обновляется каждые 5с пока открыт тикет
+  // Polling: переписка обновляется каждые 5с, только пока оператор реально смотрит на очередь —
+  // иначе после ухода на другой экран (Настройки, База знаний...) опрос продолжался бы вхолостую,
+  // потому что selectedTicketId не сбрасывается при смене экрана
   useEffect(() => {
-    if (!auth || !selectedTicketId) return
+    if (!auth || !selectedTicketId || screen !== 'chats') return
     const id = setInterval(() => void loadTicketMessages(selectedTicketId, true), 5000)
     return () => clearInterval(id)
-  }, [auth, selectedTicketId])
+  }, [auth, selectedTicketId, screen])
 
   const handleLogin = async (event: Event) => {
     event.preventDefault()
