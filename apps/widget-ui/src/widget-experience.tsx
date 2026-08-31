@@ -4,6 +4,7 @@ import {
   formatDateTime,
   statusLabel,
   type AdminScreen,
+  type FaqArticle,
   type MessageRecord,
   type PostMessageResponse,
   type SessionMessagesResponse,
@@ -48,6 +49,10 @@ export function WidgetExperience({
   const [sending, setSending] = useState(false)
   const [typing, setTyping] = useState(false)
   const [chatError, setChatError] = useState<string | null>(null)
+  const [faqQuery, setFaqQuery] = useState('')
+  const [faqResults, setFaqResults] = useState<FaqArticle[] | null>(null)
+  const [faqSearching, setFaqSearching] = useState(false)
+  const [expandedFaqId, setExpandedFaqId] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -78,6 +83,39 @@ export function WidgetExperience({
       cancelled = true
     }
   }, [])
+
+  // Поиск по FAQ с debounce — не дёргаем API на каждое нажатие клавиши, ждём паузы в 300мс.
+  // Бэкенд требует минимум 2 символа (FR-012), короче — просто показываем список тем как обычно.
+  useEffect(() => {
+    const trimmed = faqQuery.trim()
+
+    if (trimmed.length < 2) {
+      setFaqResults(null)
+      setFaqSearching(false)
+      return
+    }
+
+    let cancelled = false
+    setFaqSearching(true)
+
+    const id = setTimeout(async () => {
+      try {
+        const results = await apiRequest<FaqArticle[]>(
+          `/public/tenants/${tenantId}/faq/search?q=${encodeURIComponent(trimmed)}`,
+        )
+        if (!cancelled) setFaqResults(results)
+      } catch {
+        if (!cancelled) setFaqResults([])
+      } finally {
+        if (!cancelled) setFaqSearching(false)
+      }
+    }, 300)
+
+    return () => {
+      cancelled = true
+      clearTimeout(id)
+    }
+  }, [faqQuery, tenantId])
 
   const refreshSession = async (nextSessionId: string) => {
     const payload = await apiRequest<SessionMessagesResponse>(
@@ -287,24 +325,59 @@ export function WidgetExperience({
                   </button>
                 </article>
 
-                {/* Темы как flat-аккордеон */}
-                <div class="topic-accordion">
-                  {widgetData?.topics.map((topic) => (
-                    <button
-                      class="accordion-item"
-                      type="button"
-                      key={topic.id}
-                      onClick={() => {
-                        onScreenChange('chat')
-                      }}
-                    >
-                      <span>{topic.title}</span>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
-                        <path d="M9 18l6-6-6-6" />
-                      </svg>
-                    </button>
-                  ))}
+                {/* Поиск по FAQ (FR-012) */}
+                <div class="faq-search">
+                  <input
+                    class="text-input"
+                    type="search"
+                    placeholder="Поиск по частым вопросам..."
+                    value={faqQuery}
+                    onInput={(event) => setFaqQuery((event.currentTarget as HTMLInputElement).value)}
+                  />
                 </div>
+
+                {faqQuery.trim().length >= 2 ? (
+                  <div class="search-list">
+                    {faqSearching ? (
+                      <div class="empty-state">Ищу...</div>
+                    ) : faqResults && faqResults.length > 0 ? (
+                      faqResults.map((article) => (
+                        <button
+                          class="faq-item"
+                          type="button"
+                          key={article.id}
+                          onClick={() => setExpandedFaqId((current) => (current === article.id ? null : article.id))}
+                        >
+                          <strong>{article.question}</strong>
+                          {expandedFaqId === article.id && <p>{article.answer}</p>}
+                        </button>
+                      ))
+                    ) : (
+                      <div class="empty-state">
+                        Ничего не нашлось. Попробуйте другой запрос — или сразу задайте вопрос в чате.
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  /* Темы как flat-аккордеон */
+                  <div class="topic-accordion">
+                    {widgetData?.topics.map((topic) => (
+                      <button
+                        class="accordion-item"
+                        type="button"
+                        key={topic.id}
+                        onClick={() => {
+                          onScreenChange('chat')
+                        }}
+                      >
+                        <span>{topic.title}</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                          <path d="M9 18l6-6-6-6" />
+                        </svg>
+                      </button>
+                    ))}
+                  </div>
+                )}
 
               </section>
 

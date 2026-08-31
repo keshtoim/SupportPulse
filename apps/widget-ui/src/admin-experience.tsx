@@ -46,6 +46,7 @@ export function AdminExperience({
   const [newTicketToast, setNewTicketToast] = useState<string | null>(null)
   const [unseenTicketCount, setUnseenTicketCount] = useState(0)
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null)
+  const [statusFilter, setStatusFilter] = useState<TicketRecord['status'] | 'all'>('all')
   const [ticketMessages, setTicketMessages] = useState<MessageRecord[]>([])
   const [messagesLoading, setMessagesLoading] = useState(false)
   const [replyDraft, setReplyDraft] = useState('')
@@ -112,6 +113,7 @@ export function AdminExperience({
   const isPlatformAdmin = auth?.user.role === 'platform_admin'
   const canManageTemplates = auth?.user.role === 'supervisor' || auth?.user.role === 'company_admin'
   const selectedTicket = tickets.find((ticket) => ticket.id === selectedTicketId) ?? null
+  const filteredTickets = statusFilter === 'all' ? tickets : tickets.filter((ticket) => ticket.status === statusFilter)
 
   const authorizedRequest = async <ResponseType,>(path: string, init: RequestInit = {}) => {
     if (!auth) {
@@ -505,14 +507,18 @@ export function AdminExperience({
     }
   }
 
-  const handleDeleteTemplate = async (templateId: string) => {
+  const handleDeleteTemplate = async (template: ResponseTemplate) => {
     if (!canManageTemplates) {
+      return
+    }
+
+    if (!window.confirm(`Удалить шаблон «${template.title}»? Это действие нельзя отменить.`)) {
       return
     }
 
     try {
       setTemplatesNotice(null)
-      await authorizedRequest(`/operator/templates/${templateId}`, { method: 'DELETE' })
+      await authorizedRequest(`/operator/templates/${template.id}`, { method: 'DELETE' })
       await loadTemplates()
       setTemplatesNotice('Шаблон удалён.')
     } catch (error) {
@@ -646,14 +652,18 @@ export function AdminExperience({
     }
   }
 
-  const handleDeleteDocument = async (documentId: string) => {
+  const handleDeleteDocument = async (document: KnowledgeDocument) => {
     if (!canManageCompany) {
+      return
+    }
+
+    if (!window.confirm(`Удалить файл «${document.fileName}»? Он перестанет использоваться в ответах AI. Отменить нельзя.`)) {
       return
     }
 
     try {
       setKnowledgeNotice(null)
-      await authorizedRequest(`/company/knowledge/documents/${documentId}`, {
+      await authorizedRequest(`/company/knowledge/documents/${document.id}`, {
         method: 'DELETE',
       })
       await loadCompanyData()
@@ -694,6 +704,12 @@ export function AdminExperience({
 
   const handleToggleTenantBlocked = async (tenant: Tenant) => {
     if (!isPlatformAdmin) {
+      return
+    }
+
+    // Подтверждение только при блокировке — она реально отрезает клиентов компании от виджета.
+    // Разблокировка — это отмена, лишний шаг тут не нужен.
+    if (!tenant.isBlocked && !window.confirm(`Заблокировать тенанта «${tenant.name}»? Виджет и панель перестанут работать для всех пользователей этой компании.`)) {
       return
     }
 
@@ -1049,7 +1065,7 @@ export function AdminExperience({
                                 <button class="secondary-link" type="button" onClick={() => startEditTemplate(template)}>
                                   Редактировать
                                 </button>
-                                <button class="secondary-link" type="button" onClick={() => void handleDeleteTemplate(template.id)}>
+                                <button class="secondary-link" type="button" onClick={() => void handleDeleteTemplate(template)}>
                                   Удалить
                                 </button>
                               </div>
@@ -1064,7 +1080,29 @@ export function AdminExperience({
 
                 <div class="ticket-layout">
                   <aside class="ticket-list">
-                    {tickets.map((ticket) => (
+                    <div class="status-filter-row">
+                      {([
+                        ['all', 'Все'],
+                        ['new', 'Новые'],
+                        ['in_progress', 'В работе'],
+                        ['waiting_client', 'Ждут клиента'],
+                        ['closed', 'Закрыты'],
+                      ] as const).map(([value, label]) => (
+                        <button
+                          class={`status-filter-chip ${statusFilter === value ? 'active' : ''}`}
+                          type="button"
+                          key={value}
+                          onClick={() => setStatusFilter(value)}
+                        >
+                          {label}
+                          {value !== 'all' && (
+                            <span class="status-filter-count">{tickets.filter((t) => t.status === value).length}</span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+
+                    {filteredTickets.map((ticket) => (
                       <button
                         class={`ticket-list-item ${selectedTicketId === ticket.id ? 'active' : ''}`}
                         type="button"
@@ -1077,7 +1115,11 @@ export function AdminExperience({
                         <span>Причина: {ticket.reason}</span>
                       </button>
                     ))}
-                    {tickets.length === 0 && <div class="empty-state">Активных тикетов пока нет.</div>}
+                    {filteredTickets.length === 0 && (
+                      <div class="empty-state">
+                        {tickets.length === 0 ? 'Активных тикетов пока нет.' : 'Нет тикетов с таким статусом.'}
+                      </div>
+                    )}
                   </aside>
 
                   <section class="ticket-thread">
@@ -1464,7 +1506,7 @@ export function AdminExperience({
                         <p class="form-hint">{document.errorMessage}</p>
                       )}
                       {canManageCompany && (
-                        <button class="secondary-link" type="button" onClick={() => void handleDeleteDocument(document.id)}>
+                        <button class="secondary-link" type="button" onClick={() => void handleDeleteDocument(document)}>
                           Удалить
                         </button>
                       )}

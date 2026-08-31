@@ -1251,7 +1251,9 @@ html.embed-mode .widget-shell {
   font-size: 16px;
 }
 
-.faq-item span {
+.faq-item span,
+.faq-item p {
+  margin: 0;
   color: #5f6777;
   line-height: 1.35;
 }
@@ -1529,6 +1531,37 @@ html.embed-mode .widget-shell {
 .ticket-list-item span {
   color: #657083;
   font-size: 13px;
+}
+
+.status-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.status-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid #d9deea;
+  border-radius: 999px;
+  background: #fff;
+  color: #4b5468;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.status-filter-chip.active {
+  background: #1f2430;
+  border-color: #1f2430;
+  color: #fff;
+}
+
+.status-filter-count {
+  font-size: 11px;
+  opacity: 0.75;
 }
 
 .thread-header {
