@@ -1,5 +1,6 @@
 body {
   margin: 0;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: #eef1f7;
+  font-family: var(--font-ui, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
+  background: var(--paper, #eef1f7);
+  color: var(--ink, #12151c);
 }

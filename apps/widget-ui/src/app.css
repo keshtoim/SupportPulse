@@ -3,7 +3,8 @@
    семантика, не акцент. --night/--on-night фиксированы и не зависят от темы —
    используются для поверхностей, которые всегда тёмные по замыслу (шапка виджета,
    боковая панель админки), в отличие от --ink, который держит текстовый цвет и
-   переключится в тёмной теме (пока не реализована — токены готовы к этому шагу). */
+   переключается вместе с темой (см. блок @media ниже — тёмная тема следует за
+   системной настройкой ОС/браузера, ручного переключателя в приложении нет). */
 :root {
   --ink: #12151c;
   --ink-soft: #3a4254;
@@ -40,6 +41,41 @@
   --font-display: "Fraunces", Georgia, "Times New Roman", serif;
   --font-ui: "Manrope", -apple-system, "Segoe UI", sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+
+/* Тёмная тема следует системной настройке. --night/--on-night и --on-accent намеренно
+   не переопределяются — панель админки и шапка виджета остаются тёмными в любой теме
+   (это и есть их дизайн), поэтому текст на них тоже не должен меняться. Контраст границ
+   (--border) в тёмной теме держим заметно светлее поверхности — иначе карточки/кнопки
+   визуально сливаются с фоном (проверено на макете, см. историю редизайна). */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #edeff5;
+    --ink-soft: #c3c8d6;
+    --paper: #0b0e14;
+    --surface: #171c27;
+    --surface-2: #212836;
+    --border: #3a4256;
+    --muted: #8a93a6;
+    --muted-2: #5c6478;
+
+    --accent: #6e8cff;
+    --accent-tint: #1b2340;
+    --accent-tint-2: #23305c;
+
+    --status-new: #ff6b70;
+    --status-new-tint: #351b1e;
+    --status-progress: #e3a63d;
+    --status-progress-tint: #362b13;
+    --status-waiting: #38bdf8;
+    --status-waiting-tint: #122c38;
+    --status-closed: #34c57f;
+    --status-closed-tint: #10301f;
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 24px 56px rgba(0, 0, 0, 0.5);
+  }
 }
 
 * { box-sizing: border-box; }
@@ -133,7 +169,7 @@ html.embed-mode .widget-shell {
   color: var(--ink);
   border-radius: 22px;
   overflow: hidden;
-  box-shadow: 0 8px 26px rgba(25, 42, 73, 0.18);
+  box-shadow: var(--shadow-lg);
 }
 
 .widget-header {
@@ -175,13 +211,13 @@ html.embed-mode .widget-shell {
 }
 
 .brand-chip {
-  background: #fff;
+  background: var(--surface);
   border-radius: 22px;
   padding: 9px 12px;
   display: flex;
   align-items: center;
   gap: 10px;
-  box-shadow: 0 3px 12px rgba(25, 42, 73, 0.16);
+  box-shadow: var(--shadow-md);
 }
 
 /* Сама иконка (app-icon.png) уже несёт скругление и тень — оборачивать в свои не нужно,
@@ -242,7 +278,7 @@ html.embed-mode .widget-shell {
    поверх любого выбранного тенантом цвета. */
 .widget-hero {
   position: relative;
-  background: linear-gradient(160deg, var(--brand-color, #2e5eff) 0%, color-mix(in srgb, var(--brand-color, #2e5eff) 45%, #a87bff) 100%);
+  background: linear-gradient(160deg, var(--brand-color, var(--accent)) 0%, color-mix(in srgb, var(--brand-color, var(--accent)) 45%, #a87bff) 100%);
   padding: 36px 20px 46px;
   text-align: center;
   color: var(--on-accent);
@@ -270,23 +306,6 @@ html.embed-mode .widget-shell {
   font-weight: 500;
   font-size: 27px;
   letter-spacing: -0.01em;
-}
-
-.hero-banner {
-  min-height: 110px;
-  border-radius: 20px;
-  padding: 16px 18px;
-  background: linear-gradient(160deg, #4a8fff, #b88bff);
-  color: #fff;
-  display: grid;
-  place-items: end start;
-}
-
-.hero-banner h1 {
-  margin: 0;
-  font-size: 28px;
-  font-weight: 800;
-  letter-spacing: -0.5px;
 }
 
 .card {
@@ -337,23 +356,6 @@ html.embed-mode .widget-shell {
 
 .primary-button:hover {
   background: color-mix(in srgb, var(--brand-color, var(--accent)) 85%, black);
-}
-
-.feature-card {
-  border: none;
-  border-radius: 18px;
-  min-height: 82px;
-  background: #fff;
-  text-align: left;
-  padding: 0 24px;
-  font-size: 20px;
-  font-weight: 700;
-  box-shadow: 0 6px 18px rgba(25, 42, 73, 0.12);
-  cursor: pointer;
-}
-
-.feature-card span {
-  display: block;
 }
 
 /* Flat-аккордеон тем */
@@ -718,41 +720,6 @@ html.embed-mode .widget-shell {
   height: 17px;
 }
 
-.admin-nav {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.14);
-}
-
-.admin-nav-item {
-  border: none;
-  border-bottom: 1px solid #e4e6ef;
-  background: #fff;
-  min-height: 68px;
-  text-align: left;
-  padding: 0 6px;
-  font-size: 16px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.admin-nav-item.active {
-  background: #f3f3f3;
-  border: 1px solid #b7bbc8;
-  border-radius: 6px;
-}
-
-.dot-circle {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: 3px solid #afb2bc;
-  flex-shrink: 0;
-}
-
 /* Компактный icon-rail — запасной вариант для узких экранов, где основной список скрыт (см. медиа-запросы ниже) */
 .side-bottom-nav {
   display: none;
@@ -943,55 +910,6 @@ html.embed-mode .widget-shell {
   cursor: pointer;
 }
 
-.chat-canvas {
-  padding-top: 18px;
-  display: grid;
-  gap: 28px;
-}
-
-.message-row {
-  display: grid;
-  align-items: center;
-  gap: 8px;
-}
-
-.message-row.right {
-  grid-template-columns: 1fr auto 70px;
-}
-
-.message-row.left {
-  grid-template-columns: 70px 1fr;
-}
-
-.message-meta {
-  font-size: 28px;
-  font-weight: 700;
-}
-
-.bubble-line {
-  width: 100%;
-  max-width: 420px;
-  height: 72px;
-  border-radius: 20px;
-  background: #ececec;
-}
-
-.bubble-line.medium {
-  max-width: 300px;
-}
-
-.avatar-circle {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  border: 3px solid #b2b6be;
-  background: #efefef;
-}
-
-.required {
-  color: #7124ff;
-}
-
 .form-hint {
   margin: -4px 0 10px;
   color: var(--muted-2);
@@ -1145,14 +1063,6 @@ html.embed-mode .widget-shell {
     border-radius: 0 0 10px 10px;
   }
 
-  .hero-banner h1 {
-    font-size: 32px;
-  }
-
-  .feature-card {
-    font-size: 18px;
-  }
-
   .intro-card p,
   .chat-bubble p {
     font-size: 16px;
@@ -1272,25 +1182,6 @@ html.embed-mode .widget-shell {
   .admin-page h2 {
     font-size: 28px;
   }
-}
-
-.hero-banner p {
-  margin: 10px 0 0;
-  max-width: 440px;
-  font-size: 18px;
-  line-height: 1.35;
-}
-
-.hero-eyebrow {
-  display: inline-block;
-  margin-bottom: 12px;
-  padding: 6px 12px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.18);
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
 .compact-card {
